@@ -59,6 +59,15 @@
   }
 }
 
+/* RTL/LTR Layout Support */
+.rtl {
+  direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
+}
+
 /* Enhanced 3D Card Effects */
 .card-3d {
   transform-style: preserve-3d;
@@ -72,26 +81,45 @@
   will-change: transform;
 }
 
+.enhanced-card-3d {
+  transform-style: preserve-3d;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
 /* Mobile Optimization */
 @media (max-width: 768px) {
   .card-3d.mobile-optimized,
-  .service-card-3d.mobile-optimized {
+  .service-card-3d.mobile-optimized,
+  .enhanced-card-3d.mobile-optimized {
     transform: none !important;
     transition: background-color 0.3s ease;
   }
 
   .card-3d.mobile-optimized:hover,
-  .service-card-3d.mobile-optimized:hover {
+  .service-card-3d.mobile-optimized:hover,
+  .enhanced-card-3d.mobile-optimized:hover {
     background-color: rgba(17, 24, 39, 0.9);
   }
 }
 
 /* Performance Optimizations */
 .card-3d,
-.service-card-3d {
+.service-card-3d,
+.enhanced-card-3d {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transform-origin: center center;
+}
+
+/* Language-specific spacing adjustments */
+.rtl .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+.ltr .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-right: 0;
+  margin-left: 1rem;
 }
 
 /* Custom scrollbar for dark theme */
@@ -140,15 +168,6 @@ body {
   }
 }
 
-/* RTL support enhancements */
-[dir="rtl"] {
-  text-align: right;
-}
-
-[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
-}
-
 /* Gradient text effects */
 .gradient-text {
   background: linear-gradient(135deg, #06b6d4, #3b82f6);
@@ -160,6 +179,15 @@ body {
 /* Enhanced drop shadows */
 .drop-shadow-glow {
   filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.3));
+}
+
+/* Language Toggle Animation */
+.language-toggle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.language-toggle:hover {
+  transform: scale(1.05);
 }
 
 /* Voiceflow Chat Widget Styling */
@@ -181,14 +209,33 @@ body {
   --vf-text-color: #ffffff !important;
 }
 
-/* Ensure chat widget is accessible on mobile */
+/* Ensure chat widget is accessible on mobile and respects RTL/LTR */
 @media (max-width: 768px) {
   [data-vf-chat] {
     bottom: 20px !important;
-    right: 20px !important;
-    left: 20px !important;
     width: auto !important;
   }
+
+  .rtl [data-vf-chat] {
+    left: 20px !important;
+    right: auto !important;
+  }
+
+  .ltr [data-vf-chat] {
+    right: 20px !important;
+    left: auto !important;
+  }
+}
+
+/* RTL/LTR specific positioning for chat widget indicator */
+.rtl .chat-indicator {
+  left: 1.5rem;
+  right: auto;
+}
+
+.ltr .chat-indicator {
+  right: 1.5rem;
+  left: auto;
 }
 
 /* Additional Voiceflow widget integration styles */
@@ -210,4 +257,67 @@ div[data-testid="chat-widget"] {
 /* Suppress console output styling */
 .console-warning-suppressed {
   display: none !important;
+}
+
+/* Language-specific font optimizations */
+.rtl {
+  font-family: "Noto Sans Arabic", "Cairo", "Amiri", system-ui, sans-serif;
+}
+
+.ltr {
+  font-family: "Inter", "Roboto", system-ui, sans-serif;
+}
+
+/* Smooth language transition effects */
+.language-transition {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Logo positioning animations */
+.logo-transition {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Modern Try Agent Button Styling */
+.try-agent-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.try-agent-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.try-agent-button:hover::before {
+  left: 100%;
+}
+
+/* Enhanced glow effect for the try agent button */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.5), 0 0 60px rgba(16, 185, 129, 0.3);
+  }
+}
+
+.try-agent-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Responsive adjustments for the try agent button */
+@media (max-width: 640px) {
+  .try-agent-button {
+    font-size: 0.875rem;
+    padding: 0.75rem 1.5rem;
+  }
 }

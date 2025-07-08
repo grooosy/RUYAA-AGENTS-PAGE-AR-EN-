@@ -1,0 +1,136 @@
+{
+  "ar": {
+    "header": {
+      "home": "الرئيسية",
+      "services": "خدماتنا",
+      "aiAssistant": "المساعد الذكي",
+      "training": "التدريب",
+      "contact": "تواصل معنا"
+    },
+    "hero": {
+      "title": "بوابة وكلاء رؤيا كابيتال",
+      "subtitle": "منصتك المتكاملة للوصول السريع إلى جميع الموارد والخدمات التي تحتاجها.",
+      "loginButton": "تسجيل الدخول",
+      "supportButton": "طالب الدعم"
+    },
+    "aiAssistant": {
+      "title": "المساعد الذكي - من رؤيا",
+      "subtitle": "مساعدك الذكي دائماً في خدمتك",
+      "description1": "ليس مجرد دردشة. يفهم عملك، يُقيّم المهام، يطلب موافقتك ثم ينفذ: يحجز الاجتماعات، يتابع العملاء، ويرتّب المستندات باحترافية كاملة—all بسرعة وبدقة عربية",
+      "description2": "يمكنك تجربة المساعد الذكي مجانا و اختباره في عملك مجانا.",
+      "tryButton": "جرب المساعد الذكي",
+      "learnButton": "تعلم المزيد"
+    },
+    "services": {
+      "title": "خدماتنا المتميزة",
+      "service1": {
+        "title": "الحلول الاستثمارية",
+        "description": "منتجات استثمارية متنوعة تناسب مختلف الأهداف المالية وتطلعات العملاء مع حلول مبتكرة ومتوافقة مع الشريعة."
+      },
+      "service2": {
+        "title": "وكيل خدمة العملاء و ادارة المواعيد و متابعة الطلبات",
+        "description": "نظام متكامل لإدارة خدمة العملاء وتنظيم المواعيد ومتابعة جميع الطلبات بكفاءة عالية واحترافية."
+      },
+      "service3": {
+        "title": "وكيل حسب اختصاصك",
+        "description": "وكيل ذكي متخصص يتكيف مع مجال خبرتك ويقدم الدعم المناسب لاحتياجاتك المهنية المحددة."
+      },
+      "service4": {
+        "title": "مجموعة وكلاء لادارة الشركات بشكل كامل و احترافي",
+        "description": "فريق متكامل من الوكلاء المتخصصين لإدارة جميع جوانب الشركة بأعلى معايير الاحترافية والكفاءة."
+      }
+    },
+    "training": {
+      "title": "مركز التدريب والتطوير",
+      "description": "نلتزم بتطوير مهارات وكلائنا باستمرار لتقديم أفضل الخدمات لعملائنا."
+    },
+    "contact": {
+      "title": "تواصل معنا",
+      "technicalSupport": "فريق الدعم الفني",
+      "relationshipManager": "مدير العلاقات",
+      "supportDescription": "متاح على مدار الساعة لمساعدتك في حل أي مشكلات تقنية تواجهها.",
+      "managerDescription": "تواصل مباشرة مع مدير علاقات الوكلاء للاستشارات المتخصصة.",
+      "whatsappButton": "واتساب",
+      "callButton": "اتصل بنا"
+    },
+    "footer": {
+      "companyDescription": "شريكك الموثوق لتحقيق أهدافك الاستثمارية والمالية بأعلى معايير الجودة والاحترافية.",
+      "services": "خدماتنا",
+      "support": "الدعم",
+      "company": "الشركة",
+      "followUs": "تابعنا على:",
+      "allRightsReserved": "جميع الحقوق محفوظة.",
+      "location": "سوريا , الامارات العربية المتحدة , المملكة العربية السعودية"
+    },
+    "chatWidget": {
+      "tryFree": "جرب الوكيل مجاناً"
+    }
+  },
+  "en": {
+    "header": {
+      "home": "Home",
+      "services": "Our Services",
+      "aiAssistant": "AI Assistant",
+      "training": "Training",
+      "contact": "Contact Us"
+    },
+    "hero": {
+      "title": "Ruyaa Capital Agents Portal",
+      "subtitle": "Your all-in-one platform for instant access to all resources and services you need",
+      "loginButton": "Log In",
+      "supportButton": "Request Support"
+    },
+    "aiAssistant": {
+      "title": "Ruyaa AI Assistant",
+      "subtitle": "Your intelligent assistant, always at your service",
+      "description1": "Meet your smart assistant from Ruyaa – ready to help you with every detail of your business or project, just like a real human... maybe even better. Experience real-time support, task automation, and advanced communication—tailored for your needs.",
+      "description2": "You can try the AI assistant for free and test it in your work at no cost.",
+      "tryButton": "Try AI Assistant",
+      "learnButton": "Learn More"
+    },
+    "services": {
+      "title": "Our Premium Services",
+      "service1": {
+        "title": "Investment Solutions",
+        "description": "Diverse investment products that suit different financial goals and customer aspirations with innovative and Sharia-compliant solutions."
+      },
+      "service2": {
+        "title": "Customer Service Agent & Appointment Management & Order Tracking",
+        "description": "An integrated system for managing customer service, organizing appointments, and tracking all orders with high efficiency and professionalism."
+      },
+      "service3": {
+        "title": "Specialized Agent",
+        "description": "A smart agent that adapts to your field of expertise and provides appropriate support for your specific professional needs."
+      },
+      "service4": {
+        "title": "Complete Professional Business Management Agent Team",
+        "description": "An integrated team of specialized agents to manage all aspects of the company with the highest standards of professionalism and efficiency."
+      }
+    },
+    "training": {
+      "title": "Training & Development Center",
+      "description": "We continuously train and develop Ruyaa's agents to deliver the best results, always tailored to your needs."
+    },
+    "contact": {
+      "title": "Contact Us",
+      "technicalSupport": "Technical Support Team",
+      "relationshipManager": "Relationship Manager",
+      "supportDescription": "Our support team is available 24/7 to assist you.",
+      "managerDescription": "Contact your dedicated relationship manager for business inquiries and partnership opportunities.",
+      "whatsappButton": "WhatsApp",
+      "callButton": "Call Us"
+    },
+    "footer": {
+      "companyDescription": "Ruyaa Capital is your trusted partner in digital transformation and intelligent business solutions.",
+      "services": "Services",
+      "support": "Support",
+      "company": "Company",
+      "followUs": "Follow us:",
+      "allRightsReserved": "All rights reserved.",
+      "location": "Syria, United Arab Emirates, Kingdom of Saudi Arabia"
+    },
+    "chatWidget": {
+      "tryFree": "Try Agent for Free"
+    }
+  }
+}

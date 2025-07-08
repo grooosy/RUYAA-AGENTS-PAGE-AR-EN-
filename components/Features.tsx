@@ -5,8 +5,11 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Building2, TrendingUp, FileText } from "lucide-react"
 import { useEffect } from "react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 export default function Features() {
+  const { t } = useLanguage()
+
   useEffect(() => {
     // 3D Card Effect with Vanilla JavaScript
     const initializeCardEffects = () => {
@@ -159,31 +162,26 @@ export default function Features() {
             >
               <div className="space-y-6">
                 <h2 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg leading-tight">
-                  المساعد الذكي - من رؤيا
+                  {t("aiAssistant.title")}
                 </h2>
-                <h3 className="text-2xl font-semibold text-cyan-400 drop-shadow-md">مساعدك الذكي دائماً في خدمتك</h3>
+                <h3 className="text-2xl font-semibold text-cyan-400 drop-shadow-md">{t("aiAssistant.subtitle")}</h3>
                 <div className="space-y-4">
-                  <p className="text-lg text-gray-300 leading-relaxed">
-                    ليس مجرد دردشة. يفهم عملك، يُقيّم المهام، يطلب موافقتك ثم ينفذ: يحجز الاجتماعات، يتابع العملاء، ويرتّب
-                    المستندات باحترافية كاملة—all بسرعة وبدقة عربية
-                  </p>
-                  <p className="text-lg text-gray-300 leading-relaxed">
-                    يمكنك تجربة المساعد الذكي مجانا و اختباره في عملك مجانا.
-                  </p>
+                  <p className="text-lg text-gray-300 leading-relaxed">{t("aiAssistant.description1")}</p>
+                  <p className="text-lg text-gray-300 leading-relaxed">{t("aiAssistant.description2")}</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold shadow-2xl hover:shadow-cyan-500/25 transition-all duration-300"
                   >
-                    جرب المساعد الذكي
+                    {t("aiAssistant.tryButton")}
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
                     className="border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg font-semibold bg-transparent shadow-2xl hover:shadow-cyan-400/25 transition-all duration-300"
                   >
-                    تعلم المزيد
+                    {t("aiAssistant.learnButton")}
                   </Button>
                 </div>
               </div>

@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Moon, Sun, Menu, X } from "lucide-react"
+import { Moon, Sun, Menu, X, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 export default function Header() {
   const [isDark, setIsDark] = useState(true)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { language, setLanguage, t, isRTL } = useLanguage()
 
   useEffect(() => {
     const stored = localStorage.getItem("theme")
@@ -24,6 +26,10 @@ export default function Header() {
     document.documentElement.classList.toggle("dark", newTheme)
   }
 
+  const toggleLanguage = () => {
+    setLanguage(language === "ar" ? "en" : "ar")
+  }
+
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -32,11 +38,11 @@ export default function Header() {
   }
 
   const navItems = [
-    { id: "home", label: "الرئيسية" },
-    { id: "services", label: "خدماتنا" },
-    { id: "ai-assistant", label: "المساعد الذكي" },
-    { id: "training", label: "التدريب" },
-    { id: "contact", label: "تواصل معنا" },
+    { id: "home", label: t("header.home") },
+    { id: "services", label: t("header.services") },
+    { id: "ai-assistant", label: t("header.aiAssistant") },
+    { id: "training", label: t("header.training") },
+    { id: "contact", label: t("header.contact") },
   ]
 
   return (
@@ -46,23 +52,28 @@ export default function Header() {
       className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-cyan-500/20"
     >
       <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center cursor-pointer group" onClick={scrollToTop}>
+        <div className={`flex items-center justify-between ${isRTL ? "flex-row" : "flex-row"}`}>
+          {/* Logo - positioned based on language direction */}
+          <div
+            className={`flex items-center cursor-pointer group ${isRTL ? "order-1" : "order-1"}`}
+            onClick={scrollToTop}
+          >
             <Image
               src="/images/ruyaa-ai-logo.png"
               alt="Ruyaa AI Logo"
               width={50}
               height={50}
-              className="ml-3 group-hover:scale-110 transition-transform duration-300"
+              className={`group-hover:scale-110 transition-transform duration-300 ${isRTL ? "ml-3" : "mr-3"}`}
             />
             <div className="text-2xl font-bold text-white drop-shadow-lg group-hover:text-cyan-400 transition-colors duration-300">
-              رؤيا كابيتال
+              {language === "ar" ? "رؤيا كابيتال" : "Ruyaa Capital"}
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8 space-x-reverse">
+          <nav
+            className={`hidden md:flex items-center ${isRTL ? "space-x-8 space-x-reverse order-2" : "space-x-8 order-2"}`}
+          >
             {navItems.map((item, index) => (
               <a
                 key={index}
@@ -74,12 +85,26 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Theme Toggle & Mobile Menu */}
-          <div className="flex items-center space-x-4 space-x-reverse">
+          {/* Controls - Language, Theme, Mobile Menu */}
+          <div className={`flex items-center ${isRTL ? "space-x-4 space-x-reverse order-3" : "space-x-4 order-3"}`}>
+            {/* Language Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleLanguage}
+              className="text-gray-300 hover:text-cyan-400 relative group"
+              title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            >
+              <Globe className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 text-xs font-bold text-cyan-400">{language.toUpperCase()}</span>
+            </Button>
+
+            {/* Theme Toggle */}
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-gray-300 hover:text-cyan-400">
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
+            {/* Mobile Menu Toggle */}
             <Button
               variant="ghost"
               size="icon"
