@@ -7,11 +7,30 @@
       "training": "التدريب",
       "contact": "تواصل معنا"
     },
+    "nav": {
+      "home": "الرئيسية",
+      "services": "خدماتنا",
+      "aiAssistant": "المساعد الذكي",
+      "training": "التدريب",
+      "contact": "تواصل معنا"
+    },
     "hero": {
       "title": "بوابة وكلاء رؤيا كابيتال",
-      "subtitle": "منصتك المتكاملة للوصول السريع إلى جميع الموارد والخدمات التي تحتاجها.",
+      "subtitle": "منصتك الشاملة للوصول الفوري لجميع الموارد والخدمات التي تحتاجها",
       "loginButton": "تسجيل الدخول",
-      "supportButton": "طالب الدعم"
+      "supportButton": "طلب المساعدة",
+      "feature1": {
+        "title": "مساعد ذكي",
+        "description": "دعم فوري ومتقدم لجميع احتياجاتك"
+      },
+      "feature2": {
+        "title": "أتمتة العمليات",
+        "description": "تبسيط وتسريع جميع المهام اليومية"
+      },
+      "feature3": {
+        "title": "حلول مخصصة",
+        "description": "خدمات مصممة خصيصاً لمتطلباتك"
+      }
     },
     "aiAssistant": {
       "title": "المساعد الذكي - من رؤيا",
@@ -64,6 +83,50 @@
     },
     "chatWidget": {
       "tryFree": "جرب الوكيل مجاناً"
+    },
+    "auth": {
+      "welcome": "مرحباً بك",
+      "signIn": "تسجيل الدخول",
+      "signUp": "إنشاء حساب",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "fullName": "الاسم الكامل",
+      "or": "أو",
+      "continueWithGoogle": "المتابعة مع Google",
+      "signInError": "خطأ في تسجيل الدخول",
+      "signInSuccess": "تم تسجيل الدخول بنجاح",
+      "signUpError": "خطأ في إنشاء الحساب",
+      "signUpSuccess": "تم إنشاء الحساب بنجاح",
+      "googleSignInError": "خطأ في تسجيل الدخول عبر Google",
+      "passwordMismatch": "كلمات المرور غير متطابقة",
+      "signOut": "تسجيل الخروج"
+    },
+    "profile": {
+      "noName": "بدون اسم",
+      "status": "الحالة",
+      "editProfile": "تعديل الملف الشخصي",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الهاتف",
+      "company": "الشركة",
+      "department": "القسم",
+      "bio": "نبذة شخصية",
+      "bioPlaceholder": "اكتب نبذة مختصرة عنك...",
+      "emailNotEditable": "لا يمكن تعديل البريد الإلكتروني",
+      "updateError": "خطأ في تحديث الملف الشخصي",
+      "updateSuccess": "تم تحديث الملف الشخصي بنجاح"
+    },
+    "status": {
+      "available": "متاح",
+      "busy": "مشغول",
+      "away": "غائب",
+      "offline": "غير متصل"
+    },
+    "common": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "loading": "جاري التحميل..."
     }
   },
   "en": {
@@ -74,11 +137,30 @@
       "training": "Training",
       "contact": "Contact Us"
     },
+    "nav": {
+      "home": "Home",
+      "services": "Our Services",
+      "aiAssistant": "AI Assistant",
+      "training": "Training",
+      "contact": "Contact Us"
+    },
     "hero": {
       "title": "Ruyaa Capital Agents Portal",
       "subtitle": "Your all-in-one platform for instant access to all resources and services you need",
       "loginButton": "Log In",
-      "supportButton": "Request Support"
+      "supportButton": "Request Support",
+      "feature1": {
+        "title": "AI Assistant",
+        "description": "Instant and advanced support for all your needs"
+      },
+      "feature2": {
+        "title": "Process Automation",
+        "description": "Simplify and accelerate all daily tasks"
+      },
+      "feature3": {
+        "title": "Custom Solutions",
+        "description": "Services designed specifically for your requirements"
+      }
     },
     "aiAssistant": {
       "title": "Ruyaa AI Assistant",
@@ -131,6 +213,50 @@
     },
     "chatWidget": {
       "tryFree": "Try Agent for Free"
+    },
+    "auth": {
+      "welcome": "Welcome",
+      "signIn": "Sign In",
+      "signUp": "Sign Up",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "fullName": "Full Name",
+      "or": "or",
+      "continueWithGoogle": "Continue with Google",
+      "signInError": "Sign in error",
+      "signInSuccess": "Signed in successfully",
+      "signUpError": "Sign up error",
+      "signUpSuccess": "Account created successfully",
+      "googleSignInError": "Google sign in error",
+      "passwordMismatch": "Passwords do not match",
+      "signOut": "Sign Out"
+    },
+    "profile": {
+      "noName": "No Name",
+      "status": "Status",
+      "editProfile": "Edit Profile",
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "company": "Company",
+      "department": "Department",
+      "bio": "Bio",
+      "bioPlaceholder": "Write a brief description about yourself...",
+      "emailNotEditable": "Email cannot be edited",
+      "updateError": "Profile update error",
+      "updateSuccess": "Profile updated successfully"
+    },
+    "status": {
+      "available": "Available",
+      "busy": "Busy",
+      "away": "Away",
+      "offline": "Offline"
+    },
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "loading": "Loading..."
     }
   }
 }

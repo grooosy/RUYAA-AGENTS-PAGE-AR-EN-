@@ -24,7 +24,9 @@ export default function VoiceflowChat() {
           message.includes("QH") ||
           message.includes("ZH") ||
           message.includes("createRoot()") ||
-          message.includes("ReactDOMClient")
+          message.includes("ReactDOMClient") ||
+          message.includes("Failed to fetch") ||
+          message.includes("TypeError")
         ) {
           return
         }
@@ -34,6 +36,11 @@ export default function VoiceflowChat() {
 
     console.warn = suppressWarnings(originalConsoleWarn)
     console.error = suppressWarnings(originalConsoleError)
+
+    // Check if we're in a development environment or if fetch is available
+    if (typeof window === "undefined" || !window.fetch) {
+      return
+    }
 
     // Check if script is already loaded or loading
     const existingScript = document.querySelector('script[src="https://cdn.voiceflow.com/widget-next/bundle.mjs"]')
@@ -56,6 +63,14 @@ export default function VoiceflowChat() {
           // Silently handle initialization errors
         }
       }
+      return
+    }
+
+    // Only load in production-like environments
+    const isProduction = process.env.NODE_ENV === "production" || window.location.hostname !== "localhost"
+
+    if (!isProduction) {
+      // In development, just return without loading the widget
       return
     }
 
@@ -85,7 +100,7 @@ export default function VoiceflowChat() {
             // Silently handle initialization errors
           }
         }
-      }, 500) // Increased delay to prevent race conditions
+      }, 1000) // Increased delay to prevent race conditions
     }
 
     script.onerror = () => {
