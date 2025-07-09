@@ -9,40 +9,10 @@ export default function VoiceflowChat() {
   const { t, isRTL } = useLanguage()
 
   useEffect(() => {
-    // Suppress console warnings from third-party widgets
-    const originalConsoleWarn = console.warn
-    const originalConsoleError = console.error
+    // Only load in browser environment
+    if (typeof window === "undefined") return
 
-    const suppressWarnings = (originalMethod: typeof console.warn) => {
-      return (...args: any[]) => {
-        const message = args.join(" ")
-        // Suppress specific Voiceflow and React key warnings
-        if (
-          message.includes('Each child in a list should have a unique "key" prop') ||
-          message.includes("voiceflow") ||
-          message.includes("HP") ||
-          message.includes("QH") ||
-          message.includes("ZH") ||
-          message.includes("createRoot()") ||
-          message.includes("ReactDOMClient") ||
-          message.includes("Failed to fetch") ||
-          message.includes("TypeError")
-        ) {
-          return
-        }
-        originalMethod.apply(console, args)
-      }
-    }
-
-    console.warn = suppressWarnings(originalConsoleWarn)
-    console.error = suppressWarnings(originalConsoleError)
-
-    // Check if we're in a development environment or if fetch is available
-    if (typeof window === "undefined" || !window.fetch) {
-      return
-    }
-
-    // Check if script is already loaded or loading
+    // Check if script is already loaded
     const existingScript = document.querySelector('script[src="https://cdn.voiceflow.com/widget-next/bundle.mjs"]')
     if (existingScript || isLoaded.current) return
 
@@ -66,25 +36,14 @@ export default function VoiceflowChat() {
       return
     }
 
-    // Only load in production-like environments
-    const isProduction = process.env.NODE_ENV === "production" || window.location.hostname !== "localhost"
+    // Use the exact original Voiceflow implementation
+    const loadVoiceflowWidget = () => {
+      const d = document
+      const t = "script"
+      const v = d.createElement(t)
+      const s = d.getElementsByTagName(t)[0]
 
-    if (!isProduction) {
-      // In development, just return without loading the widget
-      return
-    }
-
-    // Create and inject the Voiceflow script only once
-    const script = document.createElement("script")
-    script.type = "text/javascript"
-    script.async = true
-    script.defer = true
-    script.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs"
-    scriptRef.current = script
-
-    script.onload = () => {
-      // Add a delay to ensure the widget is fully initialized
-      setTimeout(() => {
+      v.onload = () => {
         if (window.voiceflow?.chat && !isLoaded.current) {
           try {
             window.voiceflow.chat.load({
@@ -97,29 +56,48 @@ export default function VoiceflowChat() {
             })
             isLoaded.current = true
           } catch (error) {
-            // Silently handle initialization errors
+            // Silently handle any loading errors
           }
         }
-      }, 1000) // Increased delay to prevent race conditions
+      }
+
+      v.onerror = () => {
+        // Silently handle script loading errors
+      }
+
+      v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs"
+      v.type = "text/javascript"
+      v.async = true
+      v.defer = true
+
+      // Store reference for cleanup
+      scriptRef.current = v
+
+      // Insert script using original method
+      if (s && s.parentNode) {
+        s.parentNode.insertBefore(v, s)
+      } else {
+        // Fallback if no script tags exist
+        document.head.appendChild(v)
+      }
     }
 
-    script.onerror = () => {
-      // Silently handle script loading errors
-      scriptRef.current = null
-    }
-
-    // Insert the script into the document head
-    document.head.appendChild(script)
+    // Add a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      loadVoiceflowWidget()
+    }, 100)
 
     // Cleanup function
     return () => {
-      // Restore original console methods
-      console.warn = originalConsoleWarn
-      console.error = originalConsoleError
+      clearTimeout(timeoutId)
 
       // Only remove script if we created it
       if (scriptRef.current?.parentNode) {
-        scriptRef.current.parentNode.removeChild(scriptRef.current)
+        try {
+          scriptRef.current.parentNode.removeChild(scriptRef.current)
+        } catch (error) {
+          // Silently handle removal errors
+        }
         scriptRef.current = null
       }
     }

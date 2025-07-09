@@ -190,15 +190,9 @@ body {
   transform: scale(1.05);
 }
 
-/* Voiceflow Chat Widget Styling */
+/* Voiceflow Chat Widget Styling - Enhanced for better integration */
 #voiceflow-chat {
   z-index: 9999 !important;
-}
-
-/* Suppress third-party widget warnings visually */
-.voiceflow-widget * {
-  /* Hide any error boundaries or warning displays */
-  --suppress-warnings: true;
 }
 
 /* Custom styling for Voiceflow widget to match site theme */
@@ -249,14 +243,15 @@ div[data-testid="chat-widget"] {
   z-index: 9999 !important;
 }
 
-/* Hide React DevTools warnings for third-party components */
-.__react-devtools-hide-warnings__ {
+/* Voiceflow widget error handling - prevent layout shifts */
+.voiceflow-widget-error {
   display: none !important;
 }
 
-/* Suppress console output styling */
-.console-warning-suppressed {
-  display: none !important;
+/* Suppress fetch errors visually while maintaining functionality */
+.voiceflow-fetch-error {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Language-specific font optimizations */
@@ -320,4 +315,14 @@ div[data-testid="chat-widget"] {
     font-size: 0.875rem;
     padding: 0.75rem 1.5rem;
   }
+}
+
+/* Network error handling for third-party widgets */
+.network-error-fallback {
+  display: none;
+}
+
+/* Prevent CORS and fetch errors from affecting layout */
+.third-party-widget-container {
+  isolation: isolate;
 }

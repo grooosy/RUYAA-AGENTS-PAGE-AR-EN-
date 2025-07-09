@@ -10,11 +10,19 @@
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
-    "@radix-ui/react-select": "^2.2.5",
-    "@radix-ui/react-tabs": "^1.1.12",
+    "@next/font": "^14.0.0",
+    "@radix-ui/react-avatar": "latest",
+    "@radix-ui/react-dialog": "latest",
+    "@radix-ui/react-dropdown-menu": "latest",
+    "@radix-ui/react-label": "latest",
+    "@radix-ui/react-select": "latest",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-tabs": "latest",
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "^2.38.4",
-    "@tailwindcss/postcss": "^4.1.11",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "latest",
@@ -24,13 +32,19 @@
     "react-dom": "^19",
     "sonner": "latest",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss": "^3.3.0",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0",
     "postcss": "^8.5",
+    "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
 }

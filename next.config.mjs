@@ -30,10 +30,10 @@ const nextConfig = {
   // Images configuration
   images: {
     unoptimized: true,
-    domains: ['cdn.voiceflow.com'],
+    domains: ['cdn.voiceflow.com', 'general-runtime.voiceflow.com', 'runtime-api.voiceflow.com'],
   },
   
-  // Headers for better third-party integration
+  // Headers for better third-party integration and CORS handling
   async headers() {
     return [
       {
@@ -41,11 +41,24 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; object-src 'none';",
+            value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; connect-src 'self' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; object-src 'none';",
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
           },
         ],
       },
     ]
+  },
+  
+  // Experimental features for better third-party script handling
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
   },
 }
 
