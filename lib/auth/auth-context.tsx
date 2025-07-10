@@ -2,157 +2,93 @@
 
 import type React from "react"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "@supabase/auth-helpers-nextjs"
-import { createClient } from "@/lib/supabase/client"
-import type { Database } from "@/lib/supabase/types"
+import { createContext, useContext, useState } from "react"
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"]
+// Temporary mock types while Supabase is disabled
+type User = {
+  id: string
+  email: string
+} | null
+
+type Profile = {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  role: "admin" | "agent" | "user"
+  status: "available" | "busy" | "away" | "offline"
+  provider: "email" | "google"
+  phone: string | null
+  company: string | null
+  department: string | null
+  bio: string | null
+  preferences: any
+  last_seen: string
+  created_at: string
+  updated_at: string
+} | null
 
 interface AuthContextType {
-  user: User | null
-  profile: Profile | null
+  user: User
+  profile: Profile
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>
   signInWithGoogle: () => Promise<{ error: any }>
   signOut: () => Promise<void>
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>
-  updateStatus: (status: Profile["status"]) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<any>) => Promise<{ error: any }>
+  updateStatus: (status: any) => Promise<{ error: any }>
   refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [user, setUser] = useState<User>(null)
+  const [profile, setProfile] = useState<Profile>(null)
+  const [loading, setLoading] = useState(false) // Set to false since we're not loading anything
 
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      }
-
-      setLoading(false)
-    }
-
-    getInitialSession()
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-        // Update last seen
-        await supabase.rpc("update_user_last_seen", {
-          user_uuid: session.user.id,
-        })
-      } else {
-        setProfile(null)
-      }
-
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single()
-
-      if (error) {
-        console.error("Error fetching profile:", error)
-        return
-      }
-
-      setProfile(data)
-    } catch (error) {
-      console.error("Error in fetchProfile:", error)
-    }
-  }
-
+  // Mock authentication functions
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { error }
+    // Mock successful sign in for demo purposes
+    console.log("Mock sign in:", email)
+    return { error: null }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    })
-    return { error }
+    // Mock successful sign up for demo purposes
+    console.log("Mock sign up:", email, fullName)
+    return { error: null }
   }
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-    return { error }
+    // Mock Google sign in
+    console.log("Mock Google sign in")
+    return { error: null }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    // Mock sign out
+    console.log("Mock sign out")
+    setUser(null)
+    setProfile(null)
   }
 
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return { error: "No user logged in" }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq("id", user.id)
-
-    if (!error) {
-      await refreshProfile()
-    }
-
-    return { error }
+  const updateProfile = async (updates: Partial<any>) => {
+    // Mock profile update
+    console.log("Mock profile update:", updates)
+    return { error: null }
   }
 
-  const updateStatus = async (status: Profile["status"]) => {
-    if (!user) return { error: "No user logged in" }
-
-    const { error } = await supabase.rpc("update_user_status", {
-      user_uuid: user.id,
-      new_status: status,
-    })
-
-    if (!error) {
-      await refreshProfile()
-    }
-
-    return { error }
+  const updateStatus = async (status: any) => {
+    // Mock status update
+    console.log("Mock status update:", status)
+    return { error: null }
   }
 
   const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id)
-    }
+    // Mock profile refresh
+    console.log("Mock profile refresh")
   }
 
   const value = {
