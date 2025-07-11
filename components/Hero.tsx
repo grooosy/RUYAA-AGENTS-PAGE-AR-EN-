@@ -58,14 +58,15 @@ export default function Hero() {
                 <Button
                   onClick={handleLoginClick}
                   size="lg"
-                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-cyan-500/25 transition-all duration-300"
+                  variant="modern"
+                  className="text-lg font-semibold min-w-[200px] try-agent-glow"
                 >
                   {t("hero.loginButton")}
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black px-8 py-4 text-lg font-semibold min-w-[200px] bg-transparent shadow-2xl hover:shadow-cyan-400/25 transition-all duration-300"
+                  className="border-2 border-[var(--primary-blue)] text-[var(--primary-blue)] hover:bg-[var(--primary-blue)] hover:text-white px-8 py-4 text-lg font-semibold min-w-[200px] bg-transparent shadow-2xl hover:shadow-[var(--primary-blue)]/25 transition-all duration-300 rounded-lg"
                 >
                   {t("hero.supportButton")}
                 </Button>

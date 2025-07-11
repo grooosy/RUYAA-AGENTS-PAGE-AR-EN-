@@ -134,21 +134,17 @@ export default function Features() {
               className="order-2 lg:order-1"
             >
               <div
-                className="service-card-3d rounded-xl overflow-hidden backdrop-blur-sm border border-cyan-500/20 cursor-pointer group hover:border-cyan-400/40 transition-all duration-300 h-96"
-                style={{
-                  transformStyle: "preserve-3d",
-                  background: "rgba(17, 24, 39, 0.7)",
-                }}
+                className="service-card service-card-3d cursor-pointer group h-96"
               >
                 <div className="relative h-full overflow-hidden">
                   <Image
-                    src="/images/ruyaa-agent-interface.png"
+                    src="https://images.pexels.com/photos/3184287/pexels-photo-3184287.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop"
                     alt="Ruyaa Agent AI Interface"
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="service-card-image"
                     priority
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
                 </div>
               </div>
             </motion.div>
