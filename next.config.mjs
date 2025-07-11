@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable React Strict Mode to prevent third-party widget warnings
+  // Disable React Strict Mode to prevent development warnings
   reactStrictMode: false,
   
   // Configure webpack to handle external scripts better
@@ -17,12 +17,12 @@ const nextConfig = {
     return config
   },
   
-  // ESLint configuration to ignore third-party warnings
+  // ESLint configuration to ignore build warnings during development
   eslint: {
     ignoreDuringBuilds: true,
   },
   
-  // TypeScript configuration to ignore build errors
+  // TypeScript configuration to ignore build errors during development
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -30,33 +30,15 @@ const nextConfig = {
   // Images configuration
   images: {
     unoptimized: true,
-    domains: ['cdn.voiceflow.com', 'general-runtime.voiceflow.com', 'runtime-api.voiceflow.com'],
-  },
-  
-  // Headers for better third-party integration and CORS handling
-  async headers() {
-    return [
+    remotePatterns: [
       {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; connect-src 'self' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; object-src 'none';",
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'unsafe-none',
-          },
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
-          },
-        ],
+        protocol: 'https',
+        hostname: '**',
       },
-    ]
+    ],
   },
   
-  // Experimental features for better third-party script handling
+  // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
