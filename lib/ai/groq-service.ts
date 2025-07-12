@@ -7,7 +7,6 @@ interface AIResponse {
   confidence: number
   sources: string[]
   requiresHumanFollowup: boolean
-  suggestedActions?: string[]
 }
 
 interface ConversationMessage {
@@ -29,7 +28,8 @@ interface RequestContext {
 }
 
 class GroqAIService {
-  private model = groq("llama-3.1-70b-versatile")
+  // Updated to use a supported model
+  private model = groq("llama-3.1-8b-instant")
 
   private systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
 
@@ -75,18 +75,16 @@ class GroqAIService {
     const startTime = Date.now()
 
     try {
-      // Prepare messages for the AI
-      const messages = [
-        { role: "system" as const, content: this.systemPrompt },
-        ...conversationHistory.map((msg) => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content,
-        })),
-      ]
+      // Prepare the conversation for the AI
+      const lastUserMessage = conversationHistory[conversationHistory.length - 1]?.content || ""
 
       const response = await generateText({
         model: this.model,
-        messages,
+        system: this.systemPrompt,
+        prompt: `المحادثة السابقة:
+${conversationHistory.map((msg) => `${msg.role === "user" ? "العميل" : "المساعد"}: ${msg.content}`).join("\n")}
+
+يرجى الرد بطريقة مفيدة ومهنية ومباشرة.`,
         temperature: 0.3,
         maxTokens: 500,
       })
