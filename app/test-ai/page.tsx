@@ -1,16 +1,8 @@
 "use client"
 
-import { TabsContent } from "@/components/ui/tabs"
-
-import { TabsTrigger } from "@/components/ui/tabs"
-
-import { TabsList } from "@/components/ui/tabs"
-
-import { Tabs } from "@/components/ui/tabs"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import AITester from "@/components/ai-assistant/AITester"
 import DebugPanel from "@/components/ai-assistant/DebugPanel"
 import { TestTube, Settings, MessageSquare, BarChart3 } from "lucide-react"
@@ -26,26 +18,14 @@ export default function TestAIPage() {
       <LanguageProvider>
         <div className="min-h-screen bg-background">
           <div className="container mx-auto py-8">
-            {/* Header */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-3">
-                    <TestTube className="h-10 w-10 text-blue-600" />
-                    مركز اختبار الذكاء الاصطناعي
-                  </span>
-                  <Badge variant="outline">Development</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg text-muted-foreground">
-                  اختبر وراقب أداء مساعد رؤيا الذكي وتأكد من جودة الاستجابات
-                </p>
-              </CardContent>
-            </Card>
-
             <div className="mb-8">
-              <h1 className="text-4xl font-bold mb-4 flex items-center gap-3">AI Testing Page</h1>
+              <h1 className="text-4xl font-bold mb-4 flex items-center gap-3">
+                <TestTube className="h-10 w-10 text-blue-600" />
+                مركز اختبار الذكاء الاصطناعي
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                اختبر وراقب أداء مساعد رؤيا الذكي وتأكد من جودة الاستجابات
+              </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -214,6 +194,9 @@ export default function TestAIPage() {
               </TabsContent>
             </Tabs>
           </div>
+
+          {/* Debug Panel */}
+          <DebugPanel />
 
           {/* Toast notifications */}
           <Toaster position="top-right" richColors closeButton />
