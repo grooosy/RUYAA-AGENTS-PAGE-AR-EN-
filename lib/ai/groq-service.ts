@@ -138,4 +138,6 @@ class GroqAIService {
 
 // Export the service instance
 export const groqService = new GroqAIService()
+export const groqAI = new GroqAIService()
 export { GroqAIService }
+export default GroqAIService
