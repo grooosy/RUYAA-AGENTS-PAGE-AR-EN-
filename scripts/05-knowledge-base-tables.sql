@@ -1,101 +1,50 @@
--- Create knowledge_base table
-CREATE TABLE IF NOT EXISTS public.knowledge_base (
+-- Create knowledge base table
+CREATE TABLE IF NOT EXISTS knowledge_base (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
     content TEXT NOT NULL,
-    category TEXT NOT NULL DEFAULT 'general',
-    language TEXT NOT NULL DEFAULT 'arabic',
+    category TEXT NOT NULL,
+    language TEXT DEFAULT 'arabic',
     tags TEXT[] DEFAULT '{}',
     is_verified BOOLEAN DEFAULT false,
+    created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_by UUID REFERENCES auth.users(id),
-    metadata JSONB DEFAULT '{}'::jsonb,
-    relevance_score FLOAT DEFAULT 0.0
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_category ON public.knowledge_base(category);
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_language ON public.knowledge_base(language);
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_verified ON public.knowledge_base(is_verified);
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_created_at ON public.knowledge_base(created_at);
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_updated_at ON public.knowledge_base(updated_at);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_category ON knowledge_base(category);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_language ON knowledge_base(language);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_verified ON knowledge_base(is_verified);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_created_at ON knowledge_base(created_at);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_updated_at ON knowledge_base(updated_at);
 
 -- Create full-text search index
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_content_search 
-ON public.knowledge_base 
-USING gin(to_tsvector('arabic', content));
-
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_title_search 
-ON public.knowledge_base 
-USING gin(to_tsvector('arabic', title));
-
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create trigger to automatically update updated_at
-DROP TRIGGER IF EXISTS update_knowledge_base_updated_at ON public.knowledge_base;
-CREATE TRIGGER update_knowledge_base_updated_at
-    BEFORE UPDATE ON public.knowledge_base
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_search ON knowledge_base USING gin(to_tsvector('arabic', title || ' ' || content));
 
 -- Enable Row Level Security
-ALTER TABLE public.knowledge_base ENABLE ROW LEVEL SECURITY;
+ALTER TABLE knowledge_base ENABLE ROW LEVEL SECURITY;
 
--- Create policies for RLS
-CREATE POLICY "Allow public read access to verified knowledge" ON public.knowledge_base
-    FOR SELECT USING (is_verified = true);
+-- Create policies for knowledge base access
+CREATE POLICY "Allow read access to knowledge base" ON knowledge_base
+    FOR SELECT USING (true);
 
-CREATE POLICY "Allow authenticated users to read all knowledge" ON public.knowledge_base
-    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow authenticated users to insert knowledge base items" ON knowledge_base
+    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Allow authenticated users to insert knowledge" ON public.knowledge_base
-    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Allow users to update their own knowledge base items" ON knowledge_base
+    FOR UPDATE USING (auth.uid() = created_by OR auth.role() = 'service_role');
 
-CREATE POLICY "Allow users to update their own knowledge" ON public.knowledge_base
-    FOR UPDATE TO authenticated USING (created_by = auth.uid());
+CREATE POLICY "Allow users to delete their own knowledge base items" ON knowledge_base
+    FOR DELETE USING (auth.uid() = created_by OR auth.role() = 'service_role');
 
-CREATE POLICY "Allow users to delete their own knowledge" ON public.knowledge_base
-    FOR DELETE TO authenticated USING (created_by = auth.uid());
-
--- Insert sample knowledge base data
-INSERT INTO public.knowledge_base (title, content, category, language, is_verified, tags) VALUES
--- Arabic content
-('خدمات رؤيا كابيتال', 'رؤيا كابيتال تقدم حلول الذكاء الاصطناعي المتقدمة للشركات والمؤسسات. نحن متخصصون في تطوير الوكلاء الذكيين والأنظمة التفاعلية التي تساعد في تحسين خدمة العملاء وزيادة الكفاءة التشغيلية.', 'services', 'arabic', true, ARRAY['خدمات', 'ذكاء اصطناعي', 'وكلاء ذكيين']),
-
-('الوكلاء الذكيين', 'الوكلاء الذكيين هم أنظمة ذكية قادرة على فهم والتفاعل مع العملاء بطريقة طبيعية. يمكنهم الإجابة على الاستفسارات، تقديم المساعدة، وحل المشاكل بكفاءة عالية على مدار الساعة.', 'technology', 'arabic', true, ARRAY['وكلاء ذكيين', 'تقنية', 'خدمة عملاء']),
-
-('حلول تقنية متقدمة', 'نقدم حلول تقنية متطورة تشمل معالجة اللغة الطبيعية، التعلم الآلي، والذكاء الاصطناعي التحادثي. حلولنا مصممة لتلبية احتياجات الشركات المختلفة وتحسين تجربة العملاء.', 'technology', 'arabic', true, ARRAY['تقنية', 'ذكاء اصطناعي', 'حلول']),
-
-('فوائد الذكاء الاصطناعي', 'الذكاء الاصطناعي يساعد الشركات في تقليل التكاليف، زيادة الكفاءة، تحسين دقة الخدمات، وتوفير خدمة عملاء متاحة على مدار الساعة. كما يساعد في تحليل البيانات واتخاذ قرارات أفضل.', 'benefits', 'arabic', true, ARRAY['فوائد', 'ذكاء اصطناعي', 'كفاءة']),
-
--- English content
-('Ruyaa Capital Services', 'Ruyaa Capital provides advanced artificial intelligence solutions for businesses and organizations. We specialize in developing intelligent agents and interactive systems that help improve customer service and increase operational efficiency.', 'services', 'english', true, ARRAY['services', 'artificial intelligence', 'intelligent agents']),
-
-('Intelligent Agents', 'Intelligent agents are smart systems capable of understanding and interacting with customers naturally. They can answer inquiries, provide assistance, and solve problems efficiently around the clock.', 'technology', 'english', true, ARRAY['intelligent agents', 'technology', 'customer service']),
-
-('Advanced Technical Solutions', 'We provide advanced technical solutions including natural language processing, machine learning, and conversational artificial intelligence. Our solutions are designed to meet the needs of different companies and improve customer experience.', 'technology', 'english', true, ARRAY['technology', 'artificial intelligence', 'solutions']),
-
-('AI Benefits', 'Artificial intelligence helps companies reduce costs, increase efficiency, improve service accuracy, and provide 24/7 customer service. It also helps in data analysis and making better decisions.', 'benefits', 'english', true, ARRAY['benefits', 'artificial intelligence', 'efficiency']),
-
--- Company information
-('معلومات الشركة', 'رؤيا كابيتال هي شركة رائدة في مجال الذكاء الاصطناعي والتقنيات المتقدمة. نحن نساعد الشركات في تحويل عملياتها رقمياً وتحسين تفاعلها مع العملاء من خلال حلول ذكية ومبتكرة.', 'company', 'arabic', true, ARRAY['شركة', 'معلومات', 'رؤيا كابيتال']),
-
-('Company Information', 'Ruyaa Capital is a leading company in artificial intelligence and advanced technologies. We help companies digitally transform their operations and improve customer interaction through smart and innovative solutions.', 'company', 'english', true, ARRAY['company', 'information', 'ruyaa capital']);
-
--- Create function for text search
+-- Function to search knowledge base with full-text search
 CREATE OR REPLACE FUNCTION search_knowledge_base(
-    search_query TEXT,
-    search_language TEXT DEFAULT 'arabic',
-    verified_only BOOLEAN DEFAULT true,
-    result_limit INTEGER DEFAULT 10
+    p_query TEXT,
+    p_category TEXT DEFAULT NULL,
+    p_language TEXT DEFAULT 'arabic',
+    p_limit INTEGER DEFAULT 10
 )
 RETURNS TABLE (
     id UUID,
@@ -107,8 +56,10 @@ RETURNS TABLE (
     is_verified BOOLEAN,
     created_at TIMESTAMP WITH TIME ZONE,
     updated_at TIMESTAMP WITH TIME ZONE,
-    relevance_score FLOAT
-) AS $$
+    relevance_score REAL
+) 
+LANGUAGE plpgsql
+AS $$
 BEGIN
     RETURN QUERY
     SELECT 
@@ -121,21 +72,119 @@ BEGIN
         kb.is_verified,
         kb.created_at,
         kb.updated_at,
-        ts_rank(
-            to_tsvector(CASE WHEN search_language = 'arabic' THEN 'arabic' ELSE 'english' END, kb.content || ' ' || kb.title),
-            plainto_tsquery(CASE WHEN search_language = 'arabic' THEN 'arabic' ELSE 'english' END, search_query)
-        ) as relevance_score
-    FROM public.knowledge_base kb
+        ts_rank(to_tsvector('arabic', kb.title || ' ' || kb.content), plainto_tsquery('arabic', p_query)) as relevance_score
+    FROM knowledge_base kb
     WHERE 
-        (NOT verified_only OR kb.is_verified = true)
-        AND kb.language = search_language
-        AND (
-            to_tsvector(CASE WHEN search_language = 'arabic' THEN 'arabic' ELSE 'english' END, kb.content || ' ' || kb.title) 
-            @@ plainto_tsquery(CASE WHEN search_language = 'arabic' THEN 'arabic' ELSE 'english' END, search_query)
-            OR kb.content ILIKE '%' || search_query || '%'
-            OR kb.title ILIKE '%' || search_query || '%'
-        )
-    ORDER BY relevance_score DESC, kb.updated_at DESC
-    LIMIT result_limit;
+        (p_category IS NULL OR kb.category = p_category)
+        AND kb.language = p_language
+        AND kb.is_verified = true
+        AND to_tsvector('arabic', kb.title || ' ' || kb.content) @@ plainto_tsquery('arabic', p_query)
+    ORDER BY relevance_score DESC
+    LIMIT p_limit;
 END;
-$$ LANGUAGE plpgsql;
+$$;
+
+-- Function to get knowledge base analytics
+CREATE OR REPLACE FUNCTION get_knowledge_base_analytics()
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    result JSON;
+BEGIN
+    SELECT json_build_object(
+        'total_items', (SELECT COUNT(*) FROM knowledge_base),
+        'verified_items', (SELECT COUNT(*) FROM knowledge_base WHERE is_verified = true),
+        'categories', (
+            SELECT json_object_agg(category, count)
+            FROM (
+                SELECT category, COUNT(*) as count
+                FROM knowledge_base
+                GROUP BY category
+            ) cat_counts
+        ),
+        'languages', (
+            SELECT json_object_agg(language, count)
+            FROM (
+                SELECT language, COUNT(*) as count
+                FROM knowledge_base
+                GROUP BY language
+            ) lang_counts
+        ),
+        'recent_updates', (
+            SELECT json_agg(
+                json_build_object(
+                    'id', id,
+                    'title', title,
+                    'category', category,
+                    'updated_at', updated_at
+                )
+            )
+            FROM (
+                SELECT id, title, category, updated_at
+                FROM knowledge_base
+                ORDER BY updated_at DESC
+                LIMIT 5
+            ) recent
+        )
+    ) INTO result;
+    
+    RETURN result;
+END;
+$$;
+
+-- Function to update knowledge base item
+CREATE OR REPLACE FUNCTION update_knowledge_base_item()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$;
+
+-- Create trigger to automatically update updated_at
+CREATE TRIGGER trigger_update_knowledge_base_updated_at
+    BEFORE UPDATE ON knowledge_base
+    FOR EACH ROW
+    EXECUTE FUNCTION update_knowledge_base_item();
+
+-- Insert some initial knowledge base items
+INSERT INTO knowledge_base (title, content, category, language, tags, is_verified) VALUES
+(
+    'خدمات رؤيا كابيتال',
+    'رؤيا كابيتال شركة متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي. نقدم خدمات شاملة تشمل: وكلاء الدعم الذكي، أتمتة المبيعات، إدارة وسائل التواصل الاجتماعي، والحلول المخصصة حسب احتياجات العميل.',
+    'services',
+    'arabic',
+    ARRAY['خدمات', 'وكلاء ذكيين', 'ذكاء اصطناعي'],
+    true
+),
+(
+    'معلومات التواصل',
+    'للتواصل مع رؤيا كابيتال: الهاتف: 963940632191+، واتساب: 963940632191+. نحن متاحون للرد على استفساراتكم وتقديم استشارات مخصصة.',
+    'contact',
+    'arabic',
+    ARRAY['تواصل', 'هاتف', 'واتساب'],
+    true
+),
+(
+    'سياسة التسعير',
+    'نحن نقدم عروض أسعار مخصصة لكل عميل بناءً على حجم الشركة واحتياجاتها، نوع الخدمات المطلوبة، ومستوى التخصيص المطلوب. للحصول على عرض سعر دقيق، يرجى التواصل معنا مباشرة.',
+    'pricing',
+    'arabic',
+    ARRAY['أسعار', 'عروض', 'تسعير'],
+    true
+),
+(
+    'الوكيل الذكي للدعم',
+    'وكيل الدعم الذكي هو نظام متطور يستخدم الذكاء الاصطناعي لتقديم دعم عملاء على مدار الساعة. يمكنه فهم استفسارات العملاء والرد عليها بطريقة طبيعية ومفيدة، مما يحسن تجربة العملاء ويقلل من أعباء فريق الدعم.',
+    'products',
+    'arabic',
+    ARRAY['دعم', 'عملاء', 'ذكي'],
+    true
+);
+
+-- Grant necessary permissions
+GRANT ALL ON knowledge_base TO authenticated;
+GRANT ALL ON knowledge_base TO service_role;

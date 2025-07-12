@@ -31,54 +31,11 @@ interface AnalyticsData {
 
 export class KnowledgeManager {
   private supabase = createClient()
-  private tableExists: boolean | null = null
-
-  // Check if knowledge base table exists
-  private async checkTableExists(): Promise<boolean> {
-    if (this.tableExists !== null) {
-      return this.tableExists
-    }
-
-    try {
-      const { data, error } = await this.supabase.from("knowledge_base").select("id").limit(1)
-
-      if (error) {
-        // Check if error is specifically about table not existing
-        if (error.code === "42P01" || error.message.includes("does not exist")) {
-          console.warn("Knowledge base table does not exist")
-          this.tableExists = false
-          return false
-        }
-        // Other errors might still mean table exists but has other issues
-        console.warn("Error checking knowledge base table:", error)
-        this.tableExists = true
-        return true
-      }
-
-      this.tableExists = true
-      return true
-    } catch (error) {
-      console.warn("Failed to check knowledge base table existence:", error)
-      this.tableExists = false
-      return false
-    }
-  }
 
   // Search knowledge base with full-text search
   async searchKnowledge(query: string, options: SearchOptions = {}): Promise<KnowledgeItem[]> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.warn("Knowledge base table does not exist, returning empty results")
-        return []
-      }
-
-      let queryBuilder = this.supabase.from("knowledge_base").select("*")
-
-      // Add text search if query is provided
-      if (query.trim()) {
-        queryBuilder = queryBuilder.or(`content.ilike.%${query}%,title.ilike.%${query}%`)
-      }
+      let queryBuilder = this.supabase.from("knowledge_base").select("*").textSearch("content", query)
 
       if (options.category) {
         queryBuilder = queryBuilder.eq("category", options.category)
@@ -93,7 +50,7 @@ export class KnowledgeManager {
       }
 
       const { data, error } = await queryBuilder
-        .order("updated_at", { ascending: false })
+        .order("relevance_score", { ascending: false })
         .limit(options.limit || 10)
         .range(options.offset || 0, (options.offset || 0) + (options.limit || 10) - 1)
 
@@ -112,12 +69,6 @@ export class KnowledgeManager {
   // Get all knowledge items with filtering
   async getKnowledgeItems(options: SearchOptions = {}): Promise<KnowledgeItem[]> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.warn("Knowledge base table does not exist, returning empty results")
-        return []
-      }
-
       let queryBuilder = this.supabase.from("knowledge_base").select("*")
 
       if (options.category) {
@@ -152,12 +103,6 @@ export class KnowledgeManager {
   // Create new knowledge item
   async createKnowledgeItem(item: Omit<KnowledgeItem, "id" | "lastUpdated">): Promise<string | null> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.error("Cannot create knowledge item: table does not exist")
-        return null
-      }
-
       const { data, error } = await this.supabase
         .from("knowledge_base")
         .insert({
@@ -188,12 +133,6 @@ export class KnowledgeManager {
   // Update existing knowledge item
   async updateKnowledgeItem(id: string, updates: Partial<KnowledgeItem>): Promise<boolean> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.error("Cannot update knowledge item: table does not exist")
-        return false
-      }
-
       const updateData: any = {}
 
       if (updates.title) updateData.title = updates.title
@@ -223,12 +162,6 @@ export class KnowledgeManager {
   // Delete knowledge item
   async deleteKnowledgeItem(id: string): Promise<boolean> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.error("Cannot delete knowledge item: table does not exist")
-        return false
-      }
-
       const { error } = await this.supabase.from("knowledge_base").delete().eq("id", id)
 
       if (error) {
@@ -246,12 +179,6 @@ export class KnowledgeManager {
   // Get knowledge item by ID
   async getKnowledgeItemById(id: string): Promise<KnowledgeItem | null> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.warn("Cannot get knowledge item: table does not exist")
-        return null
-      }
-
       const { data, error } = await this.supabase.from("knowledge_base").select("*").eq("id", id).single()
 
       if (error) {
@@ -269,17 +196,6 @@ export class KnowledgeManager {
   // Get analytics data
   async getAnalytics(): Promise<AnalyticsData> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        return {
-          totalItems: 0,
-          verifiedItems: 0,
-          categoryCounts: {},
-          languageCounts: {},
-          recentUpdates: [],
-        }
-      }
-
       // Get total counts
       const { count: totalItems } = await this.supabase
         .from("knowledge_base")
@@ -346,13 +262,6 @@ export class KnowledgeManager {
       errors: [] as string[],
     }
 
-    const tableExists = await this.checkTableExists()
-    if (!tableExists) {
-      results.errors.push("Knowledge base table does not exist")
-      results.failed = items.length
-      return results
-    }
-
     for (const item of items) {
       try {
         const id = await this.createKnowledgeItem(item)
@@ -384,57 +293,37 @@ export class KnowledgeManager {
   // Get categories
   async getCategories(): Promise<string[]> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        return ["services", "technology", "company", "benefits"]
-      }
-
       const { data, error } = await this.supabase.from("knowledge_base").select("category").order("category")
 
       if (error) {
         console.error("Error fetching categories:", error)
-        return ["services", "technology", "company", "benefits"]
+        return []
       }
 
       const categories = [...new Set(data?.map((item) => item.category) || [])]
       return categories.filter(Boolean)
     } catch (error) {
       console.error("Error in getCategories:", error)
-      return ["services", "technology", "company", "benefits"]
+      return []
     }
   }
 
   // Get languages
   async getLanguages(): Promise<string[]> {
     try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        return ["arabic", "english"]
-      }
-
       const { data, error } = await this.supabase.from("knowledge_base").select("language").order("language")
 
       if (error) {
         console.error("Error fetching languages:", error)
-        return ["arabic", "english"]
+        return []
       }
 
       const languages = [...new Set(data?.map((item) => item.language) || [])]
       return languages.filter(Boolean)
     } catch (error) {
       console.error("Error in getLanguages:", error)
-      return ["arabic", "english"]
+      return []
     }
-  }
-
-  // Check if knowledge base is available
-  async isAvailable(): Promise<boolean> {
-    return await this.checkTableExists()
-  }
-
-  // Reset table existence cache
-  resetCache(): void {
-    this.tableExists = null
   }
 
   // Private helper method to map database row to KnowledgeItem
