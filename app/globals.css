@@ -81,10 +81,13 @@
 }
 
 /* Full-screen background */
+html,
 body {
-  position: relative;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  background: #000;
+  position: relative;
 }
 
 body::before {
@@ -142,11 +145,11 @@ body::after {
 
 /* Arabic font support */
 .font-arabic {
-  font-family: "Cairo", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* RTL support */
-.rtl {
+[dir="rtl"] {
   direction: rtl;
 }
 
@@ -174,28 +177,28 @@ body::after {
 
 /* Text shadows for better readability */
 .text-shadow {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .text-shadow-lg {
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
 }
 
 /* Content cards with backdrop blur */
 .content-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Section overlays */
 .section-overlay {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(5px);
 }
 
 /* Floating animations */
-@keyframes subtleFloat {
+@keyframes gentleFloat {
   0%,
   100% {
     transform: translateY(0px);
@@ -205,61 +208,47 @@ body::after {
   }
 }
 
-@keyframes gentleFloat {
+@keyframes subtleFloat {
   0%,
   100% {
     transform: translateY(0px) rotate(0deg);
   }
   33% {
-    transform: translateY(-8px) rotate(1deg);
+    transform: translateY(-5px) rotate(1deg);
   }
   66% {
-    transform: translateY(-4px) rotate(-1deg);
+    transform: translateY(-8px) rotate(-1deg);
   }
 }
 
 .floating-card {
-  animation: subtleFloat 6s ease-in-out infinite;
+  animation: gentleFloat 6s ease-in-out infinite;
 }
 
 .floating-element {
-  animation: gentleFloat 8s ease-in-out infinite;
+  animation: subtleFloat 8s ease-in-out infinite;
+}
+
+.floating-glow {
+  animation: gentleFloat 4s ease-in-out infinite reverse;
 }
 
 /* 3D button effects */
 .btn-3d {
   transform-style: preserve-3d;
-  transition: transform 0.2s ease;
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 }
 
 .btn-3d:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .btn-3d:active {
-  transform: translateY(0px);
-}
-
-/* Glowing effects */
-.floating-glow {
-  animation: pulse 4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-/* Focus styles for accessibility */
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 2px;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* High contrast mode support */

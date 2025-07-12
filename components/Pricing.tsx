@@ -1,23 +1,136 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useRef, useState } from "react"
+import { motion } from "framer-motion"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { useAuth } from "@/lib/auth/auth-context"
+import { Button } from "@/components/ui/button"
 import AuthModal from "@/components/auth/AuthModal"
 
 export default function Pricing() {
-  const { t, isRTL } = useLanguage()
-  const { user } = useAuth()
+  const { t, language, isRTL } = useLanguage()
+  const cardsRef = useRef<(HTMLDivElement | null)[]>([])
+  const floatingAnimationsRef = useRef<number[]>([])
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
-  const plans = [
+  useEffect(() => {
+    const isMobile = window.innerWidth <= 768
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    if (isMobile || prefersReducedMotion) {
+      // Simple mobile animations
+      cardsRef.current.forEach((card, index) => {
+        if (card) {
+          card.style.animation = `gentleFloat ${6 + index}s ease-in-out infinite`
+          card.style.animationDelay = `${index * 0.5}s`
+        }
+      })
+      return
+    }
+
+    // Enhanced 3D effects for desktop
+    const setupCard3D = (card: HTMLDivElement, index: number) => {
+      let isHovering = false
+      let animationId: number
+      let currentRotateX = 0
+      let currentRotateY = 0
+      let currentScale = 1
+      let targetRotateX = 0
+      let targetRotateY = 0
+      let targetScale = 1
+      let floatingOffset = 0
+
+      // Floating animation with unique phase for each card
+      const startFloating = () => {
+        const animate = (timestamp: number) => {
+          if (!isHovering) {
+            const phase = (index * Math.PI) / 2 // Different phase for each card
+            floatingOffset = Math.sin(timestamp * 0.0008 + phase) * 4 + Math.cos(timestamp * 0.0012 + phase) * 2
+            card.style.transform = `translateY(${floatingOffset}px) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale(${currentScale})`
+          }
+          floatingAnimationsRef.current[index] = requestAnimationFrame(animate)
+        }
+        floatingAnimationsRef.current[index] = requestAnimationFrame(animate)
+      }
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const rect = card.getBoundingClientRect()
+        const centerX = rect.left + rect.width / 2
+        const centerY = rect.top + rect.height / 2
+
+        const mouseX = e.clientX - centerX
+        const mouseY = e.clientY - centerY
+
+        const rotateX = (mouseY / rect.height) * -12
+        const rotateY = (mouseX / rect.width) * 12
+
+        targetRotateX = Math.max(-12, Math.min(12, rotateX))
+        targetRotateY = Math.max(-12, Math.min(12, rotateY))
+        targetScale = 1.03
+      }
+
+      const handleMouseEnter = () => {
+        isHovering = true
+        card.style.transition = "transform 0.1s ease-out"
+      }
+
+      const handleMouseLeave = () => {
+        isHovering = false
+        targetRotateX = 0
+        targetRotateY = 0
+        targetScale = 1
+        card.style.transition = "transform 0.5s ease-out"
+      }
+
+      const animate = () => {
+        currentRotateX += (targetRotateX - currentRotateX) * 0.1
+        currentRotateY += (targetRotateY - currentRotateY) * 0.1
+        currentScale += (targetScale - currentScale) * 0.1
+
+        if (isHovering) {
+          card.style.transform = `translateY(${floatingOffset}px) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale(${currentScale})`
+        }
+
+        animationId = requestAnimationFrame(animate)
+      }
+
+      card.addEventListener("mousemove", handleMouseMove)
+      card.addEventListener("mouseenter", handleMouseEnter)
+      card.addEventListener("mouseleave", handleMouseLeave)
+
+      startFloating()
+      animate()
+
+      return () => {
+        card.removeEventListener("mousemove", handleMouseMove)
+        card.removeEventListener("mouseenter", handleMouseEnter)
+        card.removeEventListener("mouseleave", handleMouseLeave)
+        if (animationId) cancelAnimationFrame(animationId)
+        if (floatingAnimationsRef.current[index]) {
+          cancelAnimationFrame(floatingAnimationsRef.current[index])
+        }
+      }
+    }
+
+    // Setup 3D effects for service cards
+    const cleanupFunctions: (() => void)[] = []
+    cardsRef.current.forEach((card, index) => {
+      if (card) {
+        const cleanup = setupCard3D(card, index)
+        cleanupFunctions.push(cleanup)
+      }
+    })
+
+    return () => {
+      cleanupFunctions.forEach((cleanup) => cleanup())
+    }
+  }, [])
+
+  const services = [
     {
-      name: "Basic AI Assistant",
+      title: "Basic AI Assistant",
+      description: "Essential AI-powered customer support and appointment management for small businesses",
       price: "$249",
       period: "/month",
-      description: "Essential AI-powered customer support and appointment management",
       features: [
         "AI Customer Support Agent",
         "Appointment Scheduling System",
@@ -29,15 +142,15 @@ export default function Pricing() {
       popular: false,
     },
     {
-      name: "Professional Suite",
+      title: "Professional Suite",
+      description: "Advanced sales automation with CRM integration and lead management for growing businesses",
       price: "$449",
       period: "/month",
-      description: "Advanced sales automation with CRM integration and lead management",
       features: [
         "Everything in Basic Plan",
         "Advanced Sales Automation",
         "Lead Qualification & Scoring",
-        "CRM Integration",
+        "CRM Integration (Salesforce, HubSpot)",
         "Multi-channel Communication",
         "Advanced Analytics & Reporting",
         "Priority Support",
@@ -45,10 +158,10 @@ export default function Pricing() {
       popular: true,
     },
     {
-      name: "Premium Enterprise",
+      title: "Premium Enterprise",
+      description: "Complete AI solution with social media management and content generation for enterprises",
       price: "$749",
       period: "/month",
-      description: "Complete AI solution with social media management and content generation",
       features: [
         "Everything in Professional Plan",
         "Social Media Management",
@@ -61,10 +174,10 @@ export default function Pricing() {
       popular: false,
     },
     {
-      name: "Custom Enterprise",
+      title: "Custom Enterprise",
+      description: "Fully customized AI solutions tailored to your specific business requirements",
       price: "Custom",
       period: "pricing",
-      description: "Fully customized AI solutions tailored to your specific business needs",
       features: [
         "Fully Customized AI Solutions",
         "Unlimited Integrations",
@@ -78,74 +191,136 @@ export default function Pricing() {
     },
   ]
 
-  const handleGetStarted = () => {
-    if (!user) {
-      setIsAuthModalOpen(true)
-    } else {
-      // Redirect to dashboard or contact
-      console.log("Redirect to dashboard")
-    }
-  }
-
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className={`text-3xl sm:text-4xl font-bold text-white mb-4 text-shadow-lg ${isRTL ? "font-arabic" : ""}`}>
-            {t("pricing.title")}
+    <section id="services" className="py-20 bg-black relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900/10 via-transparent to-gray-800/10" />
+
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className={`text-4xl md:text-5xl font-bold text-white mb-6 ${isRTL ? "font-arabic" : ""}`}>
+            {t("services.title")}
           </h2>
-          <p className={`text-xl text-gray-300 text-shadow max-w-3xl mx-auto ${isRTL ? "font-arabic" : ""}`}>
-            {t("pricing.subtitle")}
+          <p className={`text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed ${isRTL ? "font-arabic" : ""}`}>
+            Choose the perfect AI solution for your business needs with transparent pricing
           </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {plans.map((plan, index) => (
-            <Card
+        </motion.div>
+
+        {/* Services Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+          {services.map((service, index) => (
+            <motion.div
               key={index}
-              className={`relative bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300 ${
-                plan.popular ? "ring-2 ring-white/30 scale-105" : ""
-              }`}
+              ref={(el) => (cardsRef.current[index] = el)}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              className={`relative bg-black/90 backdrop-blur-xl rounded-2xl border ${
+                service.popular ? "border-gray-600" : "border-gray-800/50"
+              } shadow-2xl overflow-hidden group floating-card`}
+              style={{
+                transformStyle: "preserve-3d",
+                willChange: "transform",
+              }}
             >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white text-slate-900 px-4 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
-                  </span>
+              {service.popular && (
+                <div className="absolute top-0 left-0 right-0 bg-gray-700 text-white text-center py-2 text-sm font-medium">
+                  Most Popular
                 </div>
               )}
-              <CardHeader className="text-center">
-                <CardTitle className={`text-white text-xl ${isRTL ? "font-arabic" : ""}`}>{plan.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold text-white">{plan.price}</span>
-                  <span className="text-gray-300 ml-1">{plan.period}</span>
+
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className={`text-xl font-bold text-white mb-2 ${isRTL ? "font-arabic" : ""}`}>{service.title}</h3>
+                  <p className={`text-gray-300 text-sm leading-relaxed ${isRTL ? "font-arabic text-right" : ""}`}>
+                    {service.description}
+                  </p>
                 </div>
-                <CardDescription className={`text-gray-300 mt-2 ${isRTL ? "font-arabic" : ""}`}>
-                  {plan.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="text-gray-300 text-sm flex items-start">
-                      <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0" />
-                      {feature}
-                    </li>
+
+                <div className="mb-6">
+                  <div className="text-3xl font-bold text-white">
+                    {service.price}
+                    <span className="text-lg text-gray-400 font-normal">{service.period}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  {service.features.map((feature, featureIndex) => (
+                    <div key={featureIndex} className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
+                      <span className={`text-gray-400 text-sm ${isRTL ? "font-arabic" : ""}`}>{feature}</span>
+                    </div>
                   ))}
-                </ul>
-                <Button variant={plan.popular ? "primary" : "outline"} className="w-full" onClick={handleGetStarted}>
-                  {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
+                </div>
+
+                <Button
+                  variant={service.popular ? "primary" : "outline"}
+                  className={`w-full ${service.popular ? "bg-slate-900 hover:bg-slate-800" : "border-gray-600 text-white hover:bg-gray-800"}`}
+                  onClick={() => setIsAuthModalOpen(true)}
+                >
+                  {service.price === "Custom" ? "Contact Sales" : "Get Started"}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </motion.div>
           ))}
         </div>
-        <div className="text-center mt-12">
-          <p className="text-gray-300 mb-4">All plans include free setup, training, and 30-day money-back guarantee</p>
-          <p className="text-sm text-gray-400">
-            Prices are in USD and billed monthly. Custom enterprise solutions available upon request.
-          </p>
-        </div>
+
+        {/* Contact Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative bg-black/90 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl overflow-hidden group floating-card"
+          style={{
+            transformStyle: "preserve-3d",
+            willChange: "transform",
+          }}
+        >
+          <div className="p-8 lg:p-12 text-center">
+            <h3 className={`text-2xl font-bold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>
+              Ready to Get Started?
+            </h3>
+            <p className={`text-gray-300 mb-8 max-w-2xl mx-auto ${isRTL ? "font-arabic" : ""}`}>
+              Contact us today to discuss your specific requirements and get a customized solution for your business.
+            </p>
+
+            <div className="flex flex-wrap gap-4 justify-center">
+              {/* WhatsApp Button */}
+              <a
+                href="https://wa.me/963940632191"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors duration-200 text-white font-medium border border-gray-600"
+              >
+                <span>WhatsApp</span>
+              </a>
+
+              {/* Phone Button */}
+              <a
+                href="tel:+963940632191"
+                className="flex items-center gap-3 px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors duration-200 text-white font-medium border border-gray-600"
+              >
+                <span>Call Us</span>
+              </a>
+
+              {/* Get Your Agent Button */}
+              <Button
+                className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white"
+                onClick={() => setIsAuthModalOpen(true)}
+              >
+                GET YOUR AGENT
+              </Button>
+            </div>
+          </div>
+        </motion.div>
       </div>
+
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   )

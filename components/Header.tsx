@@ -1,125 +1,182 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Moon, Sun, Menu, X, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { motion } from "framer-motion"
+import Image from "next/image"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useAuth } from "@/lib/auth/auth-context"
 import AuthModal from "@/components/auth/AuthModal"
 import UserProfile from "@/components/auth/UserProfile"
-import { Menu, X, Globe } from "lucide-react"
 
 export default function Header() {
-  const { t, language, setLanguage, isRTL } = useLanguage()
-  const { user } = useAuth()
+  const [isDark, setIsDark] = useState(true)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const { language, setLanguage, t, isRTL } = useLanguage()
+  const { user, loading } = useAuth()
+
+  useEffect(() => {
+    const stored = localStorage.getItem("theme")
+    const prefersDark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    setIsDark(prefersDark)
+    document.documentElement.classList.toggle("dark", prefersDark)
+  }, [])
+
+  const toggleTheme = () => {
+    const newTheme = !isDark
+    setIsDark(newTheme)
+    localStorage.setItem("theme", newTheme ? "dark" : "light")
+    document.documentElement.classList.toggle("dark", newTheme)
+  }
 
   const toggleLanguage = () => {
     setLanguage(language === "ar" ? "en" : "ar")
   }
 
-  const navigation = [
-    { name: t("nav.home"), href: "#home" },
-    { name: t("nav.features"), href: "#features" },
-    { name: t("nav.pricing"), href: "#pricing" },
-    { name: t("nav.contact"), href: "#contact" },
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    })
+  }
+
+  const navItems = [
+    { id: "home", label: t("header.home") },
+    { id: "services", label: t("header.services") },
+    { id: "ai-assistant", label: t("header.aiAssistant") },
+    { id: "training", label: t("header.training") },
+    { id: "contact", label: t("header.contact") },
   ]
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <h1 className={`text-2xl font-bold text-white ${isRTL ? "font-arabic" : ""}`}>{t("brand.name")}</h1>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            {navigation.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`text-gray-300 hover:text-white transition-colors duration-200 ${isRTL ? "font-arabic" : ""}`}
-              >
-                {item.name}
-              </a>
-            ))}
-          </nav>
-
-          {/* Desktop Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" onClick={toggleLanguage} className="text-gray-300 hover:text-white">
-              <Globe className="w-4 h-4 mr-2" />
-              {language === "ar" ? "EN" : "العربية"}
-            </Button>
-
-            {user ? (
-              <UserProfile />
-            ) : (
-              <Button variant="primary" onClick={() => setIsAuthModalOpen(true)} className="text-sm">
-                {t("auth.signIn")}
-              </Button>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-300 hover:text-white"
+    <>
+      <motion.header
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-cyan-500/20"
+      >
+        <div className="container mx-auto px-4 py-4">
+          <div className={`flex items-center justify-between ${isRTL ? "flex-row" : "flex-row"}`}>
+            {/* Logo - positioned based on language direction */}
+            <div
+              className={`flex items-center cursor-pointer group ${isRTL ? "order-1" : "order-1"}`}
+              onClick={scrollToTop}
             >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </Button>
-          </div>
-        </div>
+              <Image
+                src="/images/ruyaa-ai-logo.png"
+                alt="Ruyaa AI Logo"
+                width={50}
+                height={50}
+                className={`group-hover:scale-110 transition-transform duration-300 ${isRTL ? "ml-3" : "mr-3"}`}
+              />
+              <div className="text-2xl font-bold text-white drop-shadow-lg group-hover:text-cyan-400 transition-colors duration-300">
+                {language === "ar" ? "رؤيا كابيتال" : "Ruyaa Capital"}
+              </div>
+            </div>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 bg-black/40 backdrop-blur-md rounded-lg mt-2">
-              {navigation.map((item) => (
+            {/* Desktop Navigation */}
+            <nav
+              className={`hidden md:flex items-center ${isRTL ? "space-x-8 space-x-reverse order-2" : "space-x-8 order-2"}`}
+            >
+              {navItems.map((item, index) => (
                 <a
-                  key={item.name}
-                  href={item.href}
-                  className={`block px-3 py-2 text-gray-300 hover:text-white transition-colors duration-200 ${isRTL ? "font-arabic text-right" : ""}`}
-                  onClick={() => setIsMenuOpen(false)}
+                  key={index}
+                  href={`#${item.id}`}
+                  className="text-gray-300 hover:text-cyan-400 transition-all duration-300 hover:drop-shadow-lg"
                 >
-                  {item.name}
+                  {item.label}
                 </a>
               ))}
-              <div className="border-t border-gray-700 pt-3 mt-3">
+            </nav>
+
+            {/* Controls - Language, Theme, Auth, Mobile Menu */}
+            <div className={`flex items-center ${isRTL ? "space-x-4 space-x-reverse order-3" : "space-x-4 order-3"}`}>
+              {/* Language Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleLanguage}
+                className="text-gray-300 hover:text-cyan-400 relative group"
+                title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+              >
+                <Globe className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 text-xs font-bold text-cyan-400">
+                  {language.toUpperCase()}
+                </span>
+              </Button>
+
+              {/* Theme Toggle */}
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-gray-300 hover:text-cyan-400">
+                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+
+              {/* Auth Section */}
+              {loading ? (
+                <div className="w-10 h-10 rounded-full bg-gray-800 animate-pulse" />
+              ) : user ? (
+                <UserProfile />
+              ) : (
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleLanguage}
-                  className="w-full justify-start text-gray-300 hover:text-white mb-2"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="px-4 py-2 rounded-lg font-medium transition-all duration-300 bg-slate-900 hover:bg-slate-800 text-white"
                 >
-                  <Globe className="w-4 h-4 mr-2" />
-                  {language === "ar" ? "English" : "العربية"}
+                  {t("auth.signIn")}
                 </Button>
-                {user ? (
-                  <UserProfile />
-                ) : (
+              )}
+
+              {/* Mobile Menu Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden text-gray-300 hover:text-cyan-400"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Navigation */}
+          {isMenuOpen && (
+            <motion.nav
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="md:hidden mt-4 pb-4 border-t border-cyan-500/20 pt-4 bg-black/90 backdrop-blur-xl rounded-lg"
+            >
+              {navItems.map((item, index) => (
+                <a
+                  key={index}
+                  href={`#${item.id}`}
+                  className="block py-2 text-gray-300 hover:text-cyan-400 transition-colors duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ))}
+
+              {/* Mobile Auth Button */}
+              {!user && (
+                <div className="pt-4 border-t border-gray-700 mt-4">
                   <Button
-                    variant="primary"
                     onClick={() => {
                       setIsAuthModalOpen(true)
                       setIsMenuOpen(false)
                     }}
-                    className="w-full"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white"
                   >
                     {t("auth.signIn")}
                   </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                </div>
+              )}
+            </motion.nav>
+          )}
+        </div>
+      </motion.header>
+
+      {/* Auth Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-    </header>
+    </>
   )
 }

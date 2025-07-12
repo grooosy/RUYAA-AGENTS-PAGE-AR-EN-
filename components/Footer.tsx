@@ -1,98 +1,151 @@
 "use client"
 
+import { motion } from "framer-motion"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { Mail, MapPin } from "lucide-react"
+import { Mail, Phone, MapPin } from "lucide-react"
 
 export default function Footer() {
-  const { t, isRTL } = useLanguage()
+  const { t, language, isRTL } = useLanguage()
 
-  const footerSections = [
+  const contactInfo = [
     {
-      title: t("footer.services.title"),
-      links: [
-        t("footer.services.aiAssistant"),
-        t("footer.services.automation"),
-        t("footer.services.analytics"),
-        t("footer.services.integration"),
-      ],
+      icon: Mail,
+      label: "Email",
+      value: "info@ruyaacapital.com",
+      href: "mailto:info@ruyaacapital.com",
     },
     {
-      title: t("footer.company.title"),
-      links: [
-        t("footer.company.about"),
-        t("footer.company.careers"),
-        t("footer.company.blog"),
-        t("footer.company.news"),
-      ],
+      icon: Phone,
+      label: "Phone",
+      value: "+963 940 632 191",
+      href: "tel:+963940632191",
     },
     {
-      title: t("footer.support.title"),
-      links: [
-        t("footer.support.help"),
-        t("footer.support.documentation"),
-        t("footer.support.contact"),
-        t("footer.support.status"),
-      ],
+      icon: MapPin,
+      label: "Location",
+      value: "Damascus, Syria",
+      href: "#",
     },
   ]
 
-  return (
-    <footer className="bg-black/30 backdrop-blur-sm border-t border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand Section */}
-          <div className="lg:col-span-1">
-            <h3 className={`text-2xl font-bold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>{t("brand.name")}</h3>
-            <p className={`text-gray-300 mb-4 ${isRTL ? "font-arabic" : ""}`}>{t("footer.description")}</p>
-            <div className="space-y-2">
-              <div className="flex items-center text-gray-300">
-                <Mail className="w-4 h-4 mr-2" />
-                <span>info@ruyaacapital.com</span>
-              </div>
-              <div className="flex items-center text-gray-300">
-                <MapPin className="w-4 h-4 mr-2" />
-                <span>{t("footer.location")}</span>
-              </div>
-            </div>
-          </div>
+  const quickLinks = [
+    { name: t("footer.home"), href: "#home" },
+    { name: t("footer.services"), href: "#services" },
+    { name: t("footer.features"), href: "#features" },
+    { name: t("footer.contact"), href: "#contact" },
+  ]
 
-          {/* Footer Sections */}
-          {footerSections.map((section, index) => (
-            <div key={index}>
-              <h4 className={`text-lg font-semibold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>{section.title}</h4>
-              <ul className="space-y-2">
-                {section.links.map((link, linkIndex) => (
-                  <li key={linkIndex}>
+  const services = ["AI Customer Support", "Appointment Management", "Sales Automation", "Follow-up Management"]
+
+  return (
+    <footer id="contact" className="bg-black/95 backdrop-blur-xl border-t border-gray-800/50 py-16">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          {/* Company Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className={`${isRTL ? "text-right" : "text-left"}`}
+          >
+            <h3 className={`text-2xl font-bold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>
+              {language === "ar" ? "رؤيا كابيتال" : "Ruyaa Capital"}
+            </h3>
+            <p className={`text-gray-300 mb-6 leading-relaxed ${isRTL ? "font-arabic" : ""}`}>
+              {t("footer.description")}
+            </p>
+          </motion.div>
+
+          {/* Quick Links */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className={`${isRTL ? "text-right" : "text-left"}`}
+          >
+            <h4 className={`text-lg font-semibold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>
+              {t("footer.quickLinks")}
+            </h4>
+            <ul className="space-y-2">
+              {quickLinks.map((link, index) => (
+                <li key={index}>
+                  <a
+                    href={link.href}
+                    className={`text-gray-300 hover:text-white transition-colors duration-200 ${isRTL ? "font-arabic" : ""}`}
+                  >
+                    {link.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Services */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className={`${isRTL ? "text-right" : "text-left"}`}
+          >
+            <h4 className={`text-lg font-semibold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>
+              {t("footer.services")}
+            </h4>
+            <ul className="space-y-2">
+              {services.map((service, index) => (
+                <li key={index}>
+                  <span className={`text-gray-300 ${isRTL ? "font-arabic" : ""}`}>{service}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* Contact Info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className={`${isRTL ? "text-right" : "text-left"}`}
+          >
+            <h4 className={`text-lg font-semibold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>
+              {t("footer.contact")}
+            </h4>
+            <ul className="space-y-3">
+              {contactInfo.map((info, index) => {
+                const IconComponent = info.icon
+                return (
+                  <li key={index}>
                     <a
-                      href="#"
-                      className={`text-gray-300 hover:text-white transition-colors duration-200 ${isRTL ? "font-arabic" : ""}`}
+                      href={info.href}
+                      className={`flex items-center gap-3 text-gray-300 hover:text-white transition-colors duration-200 ${
+                        isRTL ? "flex-row-reverse" : ""
+                      }`}
                     >
-                      {link}
+                      <IconComponent className="w-4 h-4 flex-shrink-0" />
+                      <span className={`${isRTL ? "font-arabic" : ""}`}>{info.value}</span>
                     </a>
                   </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                )
+              })}
+            </ul>
+          </motion.div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="border-t border-gray-700 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className={`text-gray-400 text-sm ${isRTL ? "font-arabic" : ""}`}>{t("footer.copyright")}</p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
-                {t("footer.privacy")}
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
-                {t("footer.terms")}
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors duration-200">
-                {t("footer.cookies")}
-              </a>
-            </div>
-          </div>
-        </div>
+        {/* Bottom Bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          className="border-t border-gray-800/50 pt-8 text-center"
+        >
+          <p className={`text-gray-400 ${isRTL ? "font-arabic" : ""}`}>
+            {t("footer.copyright")} {new Date().getFullYear()} {language === "ar" ? "رؤيا كابيتال" : "Ruyaa Capital"}.{" "}
+            {t("footer.allRightsReserved")}
+          </p>
+        </motion.div>
       </div>
     </footer>
   )
