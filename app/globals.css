@@ -26,6 +26,29 @@ body {
   min-height: 100vh;
 }
 
+/* Full-screen background image */
+.full-screen-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url("/images/background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  z-index: -1;
+}
+
+/* Content overlay for better text readability */
+.content-overlay {
+  position: relative;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(1px);
+  min-height: 100vh;
+}
+
 /* Arabic font support */
 .font-arabic {
   font-family: "Tahoma", "Arial Unicode MS", "Lucida Sans Unicode", "DejaVu Sans", sans-serif;
@@ -189,6 +212,10 @@ body {
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  .full-screen-bg {
+    background-attachment: scroll;
+  }
+
   .floating-card {
     animation: gentleFloat 4s ease-in-out infinite;
   }
@@ -220,6 +247,10 @@ body {
   .btn-3d {
     animation: none !important;
     transition: none !important;
+  }
+
+  .full-screen-bg {
+    background-attachment: scroll;
   }
 }
 
@@ -311,9 +342,18 @@ select:focus-visible {
 
 /* Text shadows for better readability */
 .text-shadow {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .text-shadow-lg {
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* Enhanced text readability on background */
+.enhanced-text {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+  border-radius: 8px;
+  padding: 0.5rem;
 }

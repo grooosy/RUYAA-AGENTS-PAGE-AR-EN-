@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     locale: "ar_SA",
     alternateLocale: "en_US",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -45,7 +45,10 @@ export default function RootLayout({
           />
         </noscript>
       </head>
-      <body className="min-h-screen bg-black text-white antialiased">{children}</body>
+      <body className="min-h-screen text-white antialiased">
+        <div className="full-screen-bg" />
+        <div className="content-overlay">{children}</div>
+      </body>
     </html>
   )
 }

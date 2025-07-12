@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <AuthProvider>
       <LanguageProvider>
-        <div className="min-h-screen bg-black text-white">
+        <main className="min-h-screen bg-black text-white">
           <Header />
           <motion.main
             initial={{ opacity: 0 }}
@@ -50,7 +50,7 @@ export default function Home() {
               },
             }}
           />
-        </div>
+        </main>
       </LanguageProvider>
     </AuthProvider>
   )
