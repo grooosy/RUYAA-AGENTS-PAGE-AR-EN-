@@ -30,7 +30,8 @@ const nextConfig = {
                   !message.includes('ReactDOMClient.createRoot()') &&
                   !message.includes('createRoot() on a container that has already been passed') &&
                   !message.includes('voiceflow') &&
-                  !message.includes('widget-next/bundle.mjs')
+                  !message.includes('widget-next/bundle.mjs') &&
+                  !message.includes('botpress')
                 ) {
                   originalWarn.apply(console, args)
                 }
@@ -42,7 +43,8 @@ const nextConfig = {
                   !message.includes('ReactDOMClient.createRoot()') &&
                   !message.includes('createRoot() on a container that has already been passed') &&
                   !message.includes('voiceflow') &&
-                  !message.includes('widget-next/bundle.mjs')
+                  !message.includes('widget-next/bundle.mjs') &&
+                  !message.includes('botpress')
                 ) {
                   originalError.apply(console, args)
                 }
@@ -68,7 +70,7 @@ const nextConfig = {
   // Images configuration
   images: {
     unoptimized: true,
-    domains: ['cdn.voiceflow.com', 'general-runtime.voiceflow.com', 'runtime-api.voiceflow.com'],
+    domains: ['cdn.voiceflow.com', 'general-runtime.voiceflow.com', 'runtime-api.voiceflow.com', 'cdn.botpress.cloud', 'files.bpcontent.cloud'],
   },
   
   // Enhanced headers for better third-party integration and CORS handling
@@ -79,7 +81,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; connect-src 'self' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; object-src 'none'; frame-src 'self' https://cdn.voiceflow.com;",
+            value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com https://cdn.botpress.cloud https://files.bpcontent.cloud; connect-src 'self' https://cdn.voiceflow.com https://general-runtime.voiceflow.com https://runtime-api.voiceflow.com; object-src 'none'; frame-src 'self' https://cdn.voiceflow.com;",
           },
           {
             key: 'Cross-Origin-Embedder-Policy',
