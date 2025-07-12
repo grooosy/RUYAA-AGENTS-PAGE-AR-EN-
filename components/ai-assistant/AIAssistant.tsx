@@ -156,7 +156,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 • "كيف يعمل الوكيل الذكي؟"
 • "أريد استشارة مخصصة"
 
-⚠️ **ملاحظة مهمة:** للحصول على معلومات دقيقة عن الأسعار والتفاصيل التقنية المحددة، يرجى التواصل معنا مباشرة على 963940632191+
+⚠️ **ملاحظة مهمة:** للحصول على معلومات دقيقة عن الأسعار والتفاصيل التقنية المحددة، يرجى التواصل معنا مباشرة على (+963940632191)
 
 كيف يمكنني مساعدتك اليوم؟`,
         role: "assistant",
@@ -298,8 +298,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
         id: (Date.now() + 1).toString(),
         content: `عذراً، حدث خطأ في الاتصال. 
 
-للحصول على المساعدة الفورية، اتصل بنا على 963940632191+
-💬 واتساب: 963940632191+
+للحصول على المساعدة الفورية، اتصل بنا على (+963940632191)
+💬 واتساب: (+963940632191)
 
 سيكون فريقنا سعيداً لمساعدتك.`,
         role: "assistant",
@@ -391,9 +391,17 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className={`fixed bottom-4 ${isRTL ? "left-4" : "right-4"} z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl ${
-        isMinimized ? "w-80 h-16" : deviceInfo.isMobile ? "w-[95vw] h-[85vh]" : "w-96 h-[600px]"
+      className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl ${
+        isMinimized
+          ? "w-80 h-16 bottom-4"
+          : deviceInfo.isMobile
+            ? "w-[95vw] h-[85vh] bottom-2"
+            : "w-96 h-[600px] bottom-4"
       } transition-all duration-300 overflow-hidden`}
+      style={{
+        maxHeight: deviceInfo.isMobile ? "calc(100vh - 20px)" : "600px",
+        top: deviceInfo.isMobile && !isMinimized ? "10px" : "auto",
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
@@ -646,7 +654,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               </Button>
             </div>
             <div className="text-xs text-gray-500 mt-2 text-center">
-              للحصول على معلومات دقيقة عن الأسعار، اتصل بنا على 963940632191+
+              للحصول على معلومات دقيقة عن الأسعار، اتصل بنا على (+963940632191)
             </div>
           </div>
         </>

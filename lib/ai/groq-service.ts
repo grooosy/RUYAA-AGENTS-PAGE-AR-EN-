@@ -1,4 +1,4 @@
-import { generateText, streamText } from "ai"
+import { generateText } from "ai"
 import { groq } from "@ai-sdk/groq"
 import { createClient } from "@/lib/supabase/client"
 
@@ -25,7 +25,7 @@ interface KnowledgeItem {
   verified: boolean
 }
 
-interface GenerateOptions {
+interface GenerationOptions {
   userId?: string
   sessionId?: string
   deviceInfo?: any
@@ -43,8 +43,8 @@ export class GroqAIService {
 معلومات الشركة المؤكدة:
 - اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
 - التخصص: حلول الذكاء الاصطناعي والوكلاء الذكيين
-- الهاتف: +963940632191
-- واتساب: +963940632191
+- الهاتف: 963940632191+
+- واتساب: 963940632191+
 
 الخدمات المتاحة (معلومات عامة):
 1. وكيل الدعم الذكي - نظام دعم عملاء ذكي
@@ -95,8 +95,8 @@ export class GroqAIService {
         id: "contact-info",
         title: "معلومات التواصل",
         content: `للتواصل مع رؤيا كابيتال:
-        - الهاتف: +963940632191
-        - واتساب: +963940632191
+        - الهاتف: 963940632191+
+        - واتساب: 963940632191+
         - نحن متاحون للرد على استفساراتكم وتقديم استشارات مخصصة`,
         category: "contact",
         lastUpdated: new Date(),
@@ -119,97 +119,115 @@ export class GroqAIService {
 
   async generateResponse(
     conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
-    options: GenerateOptions = {},
+    options: GenerationOptions = {},
   ): Promise<AIResponse> {
     const startTime = Date.now()
 
     try {
-      // Get knowledge base context
-      const knowledgeContext = await this.getKnowledgeContext(
-        conversationHistory[conversationHistory.length - 1]?.content || "",
-      )
-
-      // Enhanced system prompt in Arabic
-      const systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين.
+      // System prompt in Arabic for Ruyaa Capital
+      const systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
 
 معلومات الشركة:
-- رؤيا كابيتال شركة رائدة في تطوير حلول الوكلاء الذكيين
-- نقدم خدمات الذكاء الاصطناعي للشركات والمؤسسات
-- نساعد العملاء في أتمتة خدمة العملاء وتحسين الكفاءة
-- رقم التواصل: 963940632191+
+- اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
+- التخصص: حلول الوكلاء الذكيين، الذكاء الاصطناعي، أتمتة خدمة العملاء
+- رقم الهاتف: +963940632191
+- الخدمات الرئيسية:
+  * وكلاء ذكيين للدعم الفني
+  * أتمتة المبيعات
+  * إدارة وسائل التواصل الاجتماعي
+  * خدمة العملاء الذكية
 
-خدماتنا الرئيسية:
-1. وكلاء ذكيون لخدمة العملاء
-2. حلول الذكاء الاصطناعي المخصصة
-3. أتمتة العمليات التجارية
-4. تحليل البيانات والتقارير الذكية
+قواعد المحادثة:
+1. أجب باللغة العربية دائماً
+2. كن مهذباً ومفيداً
+3. إذا لم تعرف إجابة دقيقة، أرشد العميل للاتصال بالرقم +963940632191
+4. لا تخترع معلومات غير موجودة
+5. ركز على خدمات الشركة
+6. اقترح التواصل المباشر للتفاصيل التقنية والأسعار
 
-قواعد مهمة:
-- كن مفيداً ومهذباً دائماً
-- أجب باللغة العربية فقط
-- إذا لم تكن متأكداً من معلومة، اطلب من العميل التواصل مباشرة
-- لا تخترع أسعاراً أو تفاصيل تقنية محددة
-- وجه العملاء للتواصل المباشر للحصول على عروض أسعار
-- استخدم المعلومات من قاعدة المعرفة إذا كانت متوفرة
+أجب بشكل طبيعي ومفيد.`
 
-السياق من قاعدة المعرفة:
-${knowledgeContext}
+      // Prepare messages for the AI
+      const messages = [{ role: "system" as const, content: systemPrompt }, ...conversationHistory]
 
-أجب بطريقة طبيعية ومفيدة، واقترح إجراءات مناسبة عند الحاجة.`
-
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-70b-versatile",
-          messages: [{ role: "system", content: systemPrompt }, ...conversationHistory],
-          temperature: 0.7,
-          max_tokens: 1000,
-          top_p: 0.9,
-        }),
+      const { text } = await generateText({
+        model: this.model,
+        messages,
+        maxTokens: 500,
+        temperature: 0.7,
       })
 
-      if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status}`)
-      }
-
-      const data = await response.json()
       const responseTime = Date.now() - startTime
-      const content = data.choices[0]?.message?.content || "عذراً، لم أتمكن من معالجة طلبك."
 
       // Analyze response for confidence and follow-up needs
-      const analysis = this.analyzeResponse(content, conversationHistory)
+      const requiresHumanFollowup = this.shouldRequireHumanFollowup(text)
+      const suggestedActions = this.generateSuggestedActions(text)
 
       return {
-        content,
+        content: text,
         responseTime,
-        confidence: analysis.confidence,
-        sources: analysis.sources,
-        requiresHumanFollowup: analysis.requiresHumanFollowup,
-        suggestedActions: analysis.suggestedActions,
+        confidence: 0.85, // Static confidence for now
+        sources: ["groq_ai", "company_knowledge"],
+        requiresHumanFollowup,
+        suggestedActions,
       }
     } catch (error) {
       console.error("Error generating AI response:", error)
 
-      // Fallback response
-      return {
-        content: `عذراً، حدث خطأ تقني. 
+      // Fallback response in Arabic
+      const fallbackResponse = `عذراً، حدث خطأ تقني. 
 
 للحصول على المساعدة الفورية:
-📞 اتصل بنا: 963940632191+
-💬 واتساب: 963940632191+
+📞 اتصل بنا: +963940632191
+💬 واتساب: +963940632191
 
-فريقنا متاح لمساعدتك في أي وقت.`,
+فريقنا متاح لمساعدتك في أي وقت.`
+
+      return {
+        content: fallbackResponse,
         responseTime: Date.now() - startTime,
         confidence: 1.0,
         sources: ["fallback"],
         requiresHumanFollowup: true,
-        suggestedActions: ["اتصل الآن", "إرسال واتساب"],
+        suggestedActions: ["اتصل الآن", "أرسل واتساب"],
       }
     }
+  }
+
+  private shouldRequireHumanFollowup(response: string): boolean {
+    const followupKeywords = [
+      "أسعار",
+      "تكلفة",
+      "سعر",
+      "تفاصيل تقنية",
+      "عقد",
+      "اتفاقية",
+      "تخصيص",
+      "تطوير خاص",
+      "استشارة متقدمة",
+    ]
+
+    return followupKeywords.some((keyword) => response.includes(keyword))
+  }
+
+  private generateSuggestedActions(response: string): string[] {
+    const actions = []
+
+    if (response.includes("خدمات") || response.includes("حلول")) {
+      actions.push("ما هي خدماتكم؟")
+    }
+
+    if (response.includes("وكيل") || response.includes("ذكي")) {
+      actions.push("كيف يعمل الوكيل الذكي؟")
+    }
+
+    if (response.includes("أسعار") || response.includes("تكلفة")) {
+      actions.push("التواصل للاستفسار عن الأسعار")
+    }
+
+    actions.push("أريد استشارة مخصصة")
+
+    return actions.slice(0, 3) // Limit to 3 actions
   }
 
   private async getKnowledgeContext(userMessage: string): Promise<string> {
@@ -230,57 +248,6 @@ ${knowledgeContext}
     } catch (error) {
       console.error("Error fetching knowledge context:", error)
       return "لا توجد معلومات إضافية من قاعدة المعرفة."
-    }
-  }
-
-  private analyzeResponse(
-    content: string,
-    conversationHistory: any[],
-  ): {
-    confidence: number
-    sources: string[]
-    requiresHumanFollowup: boolean
-    suggestedActions: string[]
-  } {
-    // Simple analysis logic
-    const lowerContent = content.toLowerCase()
-
-    // Check if response contains pricing or technical details
-    const containsPricing = /سعر|تكلفة|مبلغ|دولار|ليرة/.test(content)
-    const containsTechnical = /تقني|برمجة|api|تطوير/.test(content)
-    const containsUncertainty = /لست متأكد|قد يكون|ربما|غير متأكد/.test(content)
-
-    let confidence = 0.8
-    let requiresHumanFollowup = false
-    const sources = ["ai_response"]
-    const suggestedActions: string[] = []
-
-    if (containsPricing || containsTechnical) {
-      confidence = 0.6
-      requiresHumanFollowup = true
-      suggestedActions.push("التواصل للحصول على عرض سعر")
-    }
-
-    if (containsUncertainty) {
-      confidence = 0.5
-      requiresHumanFollowup = true
-      suggestedActions.push("التواصل مع فريق المبيعات")
-    }
-
-    // Add common suggested actions
-    if (content.includes("خدمات")) {
-      suggestedActions.push("ما هي خدماتكم؟")
-    }
-
-    if (content.includes("وكيل ذكي")) {
-      suggestedActions.push("كيف يعمل الوكيل الذكي؟")
-    }
-
-    return {
-      confidence,
-      sources,
-      requiresHumanFollowup,
-      suggestedActions: [...new Set(suggestedActions)], // Remove duplicates
     }
   }
 
@@ -368,7 +335,7 @@ ${knowledgeContext}
       const intent = await this.analyzeUserIntent(userMessage)
       const enhancedSystemPrompt = this.buildEnhancedSystemPrompt(relevantKnowledge, intent)
 
-      const result = await streamText({
+      const result = await generateText({
         model: this.model,
         messages: [{ role: "system", content: enhancedSystemPrompt }, ...messages],
         maxTokens: 1000,
@@ -421,59 +388,6 @@ ${knowledgeContext}
       .slice(0, 3) // Limit to most relevant items
   }
 
-  private calculateConfidence(response: string, knowledge: KnowledgeItem[]): number {
-    // Higher confidence if response is based on verified knowledge
-    if (knowledge.length > 0) {
-      return 0.9
-    }
-
-    // Lower confidence for general responses
-    if (response.includes("للحصول على معلومات دقيقة") || response.includes("يرجى التواصل معنا")) {
-      return 0.8
-    }
-
-    return 0.6
-  }
-
-  private extractSources(knowledge: KnowledgeItem[]): string[] {
-    return knowledge.map((item) => item.category)
-  }
-
-  private shouldRequireHumanFollowup(message: string, intent: any): boolean {
-    const messageLower = message.toLowerCase()
-
-    // Require human followup for pricing, complex technical questions, or complaints
-    return (
-      messageLower.includes("سعر") ||
-      messageLower.includes("تكلفة") ||
-      messageLower.includes("price") ||
-      messageLower.includes("cost") ||
-      messageLower.includes("شكوى") ||
-      messageLower.includes("مشكلة") ||
-      intent.intent === "طلب_سعر" ||
-      intent.intent === "شكوى" ||
-      intent.confidence < 0.6
-    )
-  }
-
-  private generateSuggestedActions(intent: any, message: string): string[] {
-    const actions: string[] = []
-
-    if (intent.intent === "طلب_سعر" || message.toLowerCase().includes("سعر")) {
-      actions.push("طلب عرض سعر مخصص")
-      actions.push("جدولة مكالمة استشارية")
-    }
-
-    if (intent.intent === "استفسار_خدمات") {
-      actions.push("معرفة المزيد عن الخدمات")
-      actions.push("طلب عرض توضيحي")
-    }
-
-    actions.push("التواصل مع فريق المبيعات")
-
-    return actions
-  }
-
   async analyzeUserIntent(message: string): Promise<{
     intent: string
     confidence: number
@@ -484,7 +398,7 @@ ${knowledgeContext}
         model: this.model,
         messages: [
           {
-            role: "system",
+            role: "system" as const,
             content: `حلل النية من الرسالة التالية وأرجع JSON بالشكل التالي:
 {
   "intent": "نوع النية (استفسار_خدمات، طلب_سعر، دعم_تقني، شكوى، تحية، أخرى)",
@@ -495,7 +409,7 @@ ${knowledgeContext}
 كن دقيقاً في التحليل ولا تخترع معلومات.`,
           },
           {
-            role: "user",
+            role: "user" as const,
             content: message,
           },
         ],

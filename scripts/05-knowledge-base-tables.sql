@@ -1,43 +1,50 @@
--- Create knowledge base tables and functions for AI assistant
-
--- Knowledge base table
+-- Create knowledge base table
 CREATE TABLE IF NOT EXISTS knowledge_base (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     category TEXT NOT NULL,
     language TEXT DEFAULT 'arabic',
-    verified BOOLEAN DEFAULT false,
-    metadata JSONB DEFAULT '{}',
+    tags TEXT[] DEFAULT '{}',
+    is_verified BOOLEAN DEFAULT false,
+    created_by UUID REFERENCES auth.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_knowledge_base_category ON knowledge_base(category);
 CREATE INDEX IF NOT EXISTS idx_knowledge_base_language ON knowledge_base(language);
-CREATE INDEX IF NOT EXISTS idx_knowledge_base_verified ON knowledge_base(verified);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_verified ON knowledge_base(is_verified);
+CREATE INDEX IF NOT EXISTS idx_knowledge_base_created_at ON knowledge_base(created_at);
 CREATE INDEX IF NOT EXISTS idx_knowledge_base_updated_at ON knowledge_base(updated_at);
 
--- Full text search index
+-- Create full-text search index
 CREATE INDEX IF NOT EXISTS idx_knowledge_base_search ON knowledge_base USING gin(to_tsvector('arabic', title || ' ' || content));
 
--- Enable RLS
+-- Enable Row Level Security
 ALTER TABLE knowledge_base ENABLE ROW LEVEL SECURITY;
 
--- RLS policies
-CREATE POLICY "Knowledge base is viewable by everyone" ON knowledge_base
+-- Create policies for knowledge base access
+CREATE POLICY "Allow read access to knowledge base" ON knowledge_base
     FOR SELECT USING (true);
 
-CREATE POLICY "Knowledge base is editable by authenticated users" ON knowledge_base
-    FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Allow authenticated users to insert knowledge base items" ON knowledge_base
+    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- Function to search knowledge base
+CREATE POLICY "Allow users to update their own knowledge base items" ON knowledge_base
+    FOR UPDATE USING (auth.uid() = created_by OR auth.role() = 'service_role');
+
+CREATE POLICY "Allow users to delete their own knowledge base items" ON knowledge_base
+    FOR DELETE USING (auth.uid() = created_by OR auth.role() = 'service_role');
+
+-- Function to search knowledge base with full-text search
 CREATE OR REPLACE FUNCTION search_knowledge_base(
     p_query TEXT,
     p_category TEXT DEFAULT NULL,
     p_language TEXT DEFAULT 'arabic',
-    p_limit INTEGER DEFAULT 5
+    p_limit INTEGER DEFAULT 10
 )
 RETURNS TABLE (
     id UUID,
@@ -45,10 +52,14 @@ RETURNS TABLE (
     content TEXT,
     category TEXT,
     language TEXT,
-    verified BOOLEAN,
-    metadata JSONB,
+    tags TEXT[],
+    is_verified BOOLEAN,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE,
     relevance_score REAL
-) LANGUAGE plpgsql AS $$
+) 
+LANGUAGE plpgsql
+AS $$
 BEGIN
     RETURN QUERY
     SELECT 
@@ -57,130 +68,123 @@ BEGIN
         kb.content,
         kb.category,
         kb.language,
-        kb.verified,
-        kb.metadata,
-        ts_rank(
-            to_tsvector(COALESCE(p_language, 'arabic'), kb.title || ' ' || kb.content),
-            plainto_tsquery(COALESCE(p_language, 'arabic'), p_query)
-        ) AS relevance_score
+        kb.tags,
+        kb.is_verified,
+        kb.created_at,
+        kb.updated_at,
+        ts_rank(to_tsvector('arabic', kb.title || ' ' || kb.content), plainto_tsquery('arabic', p_query)) as relevance_score
     FROM knowledge_base kb
     WHERE 
         (p_category IS NULL OR kb.category = p_category)
-        AND (p_language IS NULL OR kb.language = p_language)
-        AND kb.verified = true
-        AND to_tsvector(COALESCE(p_language, 'arabic'), kb.title || ' ' || kb.content) @@ plainto_tsquery(COALESCE(p_language, 'arabic'), p_query)
+        AND kb.language = p_language
+        AND kb.is_verified = true
+        AND to_tsvector('arabic', kb.title || ' ' || kb.content) @@ plainto_tsquery('arabic', p_query)
     ORDER BY relevance_score DESC
     LIMIT p_limit;
 END;
 $$;
 
--- Function to get knowledge analytics
-CREATE OR REPLACE FUNCTION get_knowledge_analytics()
-RETURNS JSONB LANGUAGE plpgsql AS $$
+-- Function to get knowledge base analytics
+CREATE OR REPLACE FUNCTION get_knowledge_base_analytics()
+RETURNS JSON
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    result JSONB;
-    total_items INTEGER;
-    verified_items INTEGER;
-    category_counts JSONB;
-    language_counts JSONB;
-    recently_updated INTEGER;
+    result JSON;
 BEGIN
-    -- Get total items
-    SELECT COUNT(*) INTO total_items FROM knowledge_base;
-    
-    -- Get verified items
-    SELECT COUNT(*) INTO verified_items FROM knowledge_base WHERE verified = true;
-    
-    -- Get category counts
-    SELECT jsonb_object_agg(category, count)
-    INTO category_counts
-    FROM (
-        SELECT category, COUNT(*) as count
-        FROM knowledge_base
-        GROUP BY category
-    ) t;
-    
-    -- Get language counts
-    SELECT jsonb_object_agg(language, count)
-    INTO language_counts
-    FROM (
-        SELECT language, COUNT(*) as count
-        FROM knowledge_base
-        GROUP BY language
-    ) t;
-    
-    -- Get recently updated (last 7 days)
-    SELECT COUNT(*) INTO recently_updated
-    FROM knowledge_base
-    WHERE updated_at >= NOW() - INTERVAL '7 days';
-    
-    -- Build result
-    result := jsonb_build_object(
-        'totalItems', total_items,
-        'verifiedItems', verified_items,
-        'categoryCounts', COALESCE(category_counts, '{}'::jsonb),
-        'languageCounts', COALESCE(language_counts, '{}'::jsonb),
-        'recentlyUpdated', recently_updated
-    );
+    SELECT json_build_object(
+        'total_items', (SELECT COUNT(*) FROM knowledge_base),
+        'verified_items', (SELECT COUNT(*) FROM knowledge_base WHERE is_verified = true),
+        'categories', (
+            SELECT json_object_agg(category, count)
+            FROM (
+                SELECT category, COUNT(*) as count
+                FROM knowledge_base
+                GROUP BY category
+            ) cat_counts
+        ),
+        'languages', (
+            SELECT json_object_agg(language, count)
+            FROM (
+                SELECT language, COUNT(*) as count
+                FROM knowledge_base
+                GROUP BY language
+            ) lang_counts
+        ),
+        'recent_updates', (
+            SELECT json_agg(
+                json_build_object(
+                    'id', id,
+                    'title', title,
+                    'category', category,
+                    'updated_at', updated_at
+                )
+            )
+            FROM (
+                SELECT id, title, category, updated_at
+                FROM knowledge_base
+                ORDER BY updated_at DESC
+                LIMIT 5
+            ) recent
+        )
+    ) INTO result;
     
     RETURN result;
 END;
 $$;
 
--- Function to update knowledge item timestamp
-CREATE OR REPLACE FUNCTION update_knowledge_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
+-- Function to update knowledge base item
+CREATE OR REPLACE FUNCTION update_knowledge_base_item()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
 $$;
 
--- Trigger to automatically update updated_at
-CREATE TRIGGER trigger_update_knowledge_updated_at
+-- Create trigger to automatically update updated_at
+CREATE TRIGGER trigger_update_knowledge_base_updated_at
     BEFORE UPDATE ON knowledge_base
     FOR EACH ROW
-    EXECUTE FUNCTION update_knowledge_updated_at();
+    EXECUTE FUNCTION update_knowledge_base_item();
 
--- Insert initial knowledge base items
-INSERT INTO knowledge_base (title, content, category, language, verified) VALUES
+-- Insert some initial knowledge base items
+INSERT INTO knowledge_base (title, content, category, language, tags, is_verified) VALUES
 (
     'خدمات رؤيا كابيتال',
-    'رؤيا كابيتال تقدم مجموعة شاملة من حلول الذكاء الاصطناعي والوكلاء الذكيين للشركات، بما في ذلك أتمتة خدمة العملاء، وتحسين عمليات المبيعات، وإدارة وسائل التواصل الاجتماعي، والحلول المخصصة.',
+    'رؤيا كابيتال شركة متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي. نقدم خدمات شاملة تشمل: وكلاء الدعم الذكي، أتمتة المبيعات، إدارة وسائل التواصل الاجتماعي، والحلول المخصصة حسب احتياجات العميل.',
     'services',
     'arabic',
+    ARRAY['خدمات', 'وكلاء ذكيين', 'ذكاء اصطناعي'],
     true
 ),
 (
     'معلومات التواصل',
-    'للتواصل مع رؤيا كابيتال: الهاتف +963940632191، واتساب +963940632191. نحن متاحون للرد على استفساراتكم وتقديم استشارات مخصصة.',
+    'للتواصل مع رؤيا كابيتال: الهاتف: 963940632191+، واتساب: 963940632191+. نحن متاحون للرد على استفساراتكم وتقديم استشارات مخصصة.',
     'contact',
     'arabic',
+    ARRAY['تواصل', 'هاتف', 'واتساب'],
     true
 ),
 (
     'سياسة التسعير',
-    'نحن نقدم عروض أسعار مخصصة لكل عميل بناءً على حجم الشركة واحتياجاتها، ونوع الخدمات المطلوبة، ومستوى التخصيص المطلوب. للحصول على عرض سعر دقيق، يرجى التواصل معنا مباشرة.',
+    'نحن نقدم عروض أسعار مخصصة لكل عميل بناءً على حجم الشركة واحتياجاتها، نوع الخدمات المطلوبة، ومستوى التخصيص المطلوب. للحصول على عرض سعر دقيق، يرجى التواصل معنا مباشرة.',
     'pricing',
     'arabic',
+    ARRAY['أسعار', 'عروض', 'تسعير'],
     true
 ),
 (
-    'وكيل الدعم الذكي',
-    'نظام دعم عملاء ذكي يعمل على مدار الساعة مع قدرات متقدمة في فهم اللغة الطبيعية ومعالجة الاستفسارات تلقائياً.',
-    'services',
+    'الوكيل الذكي للدعم',
+    'وكيل الدعم الذكي هو نظام متطور يستخدم الذكاء الاصطناعي لتقديم دعم عملاء على مدار الساعة. يمكنه فهم استفسارات العملاء والرد عليها بطريقة طبيعية ومفيدة، مما يحسن تجربة العملاء ويقلل من أعباء فريق الدعم.',
+    'products',
     'arabic',
-    true
-),
-(
-    'وكيل أتمتة المبيعات',
-    'نظام ذكي لأتمتة عمليات المبيعات من البداية للنهاية مع تحليلات متقدمة وإدارة العملاء المحتملين.',
-    'services',
-    'arabic',
+    ARRAY['دعم', 'عملاء', 'ذكي'],
     true
 );
 
 -- Grant necessary permissions
 GRANT ALL ON knowledge_base TO authenticated;
-GRANT EXECUTE ON FUNCTION search_knowledge_base TO authenticated;
-GRANT EXECUTE ON FUNCTION get_knowledge_analytics TO authenticated;
+GRANT ALL ON knowledge_base TO service_role;

@@ -1,17 +1,32 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Search, Edit, Trash2, Check, Download, Filter, BookOpen, Shield, Calendar } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Check,
+  X,
+  Download,
+  BookOpen,
+  Globe,
+  Tag,
+  Calendar,
+  CheckCircle,
+  Loader2,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { knowledgeManager } from "@/lib/ai/knowledge-manager"
 
@@ -21,8 +36,10 @@ interface KnowledgeItem {
   content: string
   category: string
   language: string
-  verified: boolean
+  tags: string[]
+  isVerified: boolean
   lastUpdated: Date
+  createdBy?: string
   metadata?: Record<string, any>
 }
 
@@ -33,44 +50,80 @@ interface KnowledgeManagerProps {
 
 export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerProps) {
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
-  const [categories, setCategories] = useState<string[]>([])
+  const [filteredItems, setFilteredItems] = useState<KnowledgeItem[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedLanguage, setSelectedLanguage] = useState<string>("all")
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [editingItem, setEditingItem] = useState<KnowledgeItem | null>(null)
-  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const [languages, setLanguages] = useState<string[]>([])
   const [analytics, setAnalytics] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState("items")
 
-  // Form state for adding/editing items
+  // Form state for creating/editing items
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     category: "",
     language: "arabic",
-    verified: false,
+    tags: "",
+    isVerified: false,
   })
 
-  // Load knowledge items
+  // Load initial data
+  useEffect(() => {
+    if (isOpen) {
+      loadKnowledgeItems()
+      loadCategories()
+      loadLanguages()
+      loadAnalytics()
+    }
+  }, [isOpen])
+
+  // Filter items based on search and filters
+  useEffect(() => {
+    let filtered = knowledgeItems
+
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (item) =>
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
+      )
+    }
+
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((item) => item.category === selectedCategory)
+    }
+
+    if (selectedLanguage !== "all") {
+      filtered = filtered.filter((item) => item.language === selectedLanguage)
+    }
+
+    if (showVerifiedOnly) {
+      filtered = filtered.filter((item) => item.isVerified)
+    }
+
+    setFilteredItems(filtered)
+  }, [knowledgeItems, searchQuery, selectedCategory, selectedLanguage, showVerifiedOnly])
+
   const loadKnowledgeItems = async () => {
     setIsLoading(true)
     try {
-      const { items } = await knowledgeManager.getKnowledgeItems({
-        category: selectedCategory === "all" ? undefined : selectedCategory,
-        language: selectedLanguage === "all" ? undefined : selectedLanguage,
-        verified: showVerifiedOnly ? true : undefined,
-      })
+      const items = await knowledgeManager.getKnowledgeItems({ limit: 100 })
       setKnowledgeItems(items)
     } catch (error) {
       console.error("Error loading knowledge items:", error)
-      toast.error("فشل في تحميل قاعدة المعرفة")
+      toast.error("فشل في تحميل عناصر قاعدة المعرفة")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Load categories
   const loadCategories = async () => {
     try {
       const cats = await knowledgeManager.getCategories()
@@ -80,71 +133,96 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
     }
   }
 
-  // Load analytics
+  const loadLanguages = async () => {
+    try {
+      const langs = await knowledgeManager.getLanguages()
+      setLanguages(langs)
+    } catch (error) {
+      console.error("Error loading languages:", error)
+    }
+  }
+
   const loadAnalytics = async () => {
     try {
-      const data = await knowledgeManager.getKnowledgeAnalytics()
+      const data = await knowledgeManager.getAnalytics()
       setAnalytics(data)
     } catch (error) {
       console.error("Error loading analytics:", error)
     }
   }
 
-  useEffect(() => {
-    if (isOpen) {
-      loadKnowledgeItems()
-      loadCategories()
-      loadAnalytics()
-    }
-  }, [isOpen, selectedCategory, selectedLanguage, showVerifiedOnly])
-
-  // Handle add/edit item
-  const handleSaveItem = async () => {
+  const handleCreateItem = async () => {
     if (!formData.title || !formData.content || !formData.category) {
       toast.error("يرجى ملء جميع الحقول المطلوبة")
       return
     }
 
     try {
-      if (editingItem) {
-        // Update existing item
-        const success = await knowledgeManager.updateKnowledgeItem(editingItem.id, formData)
-        if (success) {
-          toast.success("تم تحديث العنصر بنجاح")
-          setEditingItem(null)
-        } else {
-          toast.error("فشل في تحديث العنصر")
-        }
-      } else {
-        // Add new item
-        const id = await knowledgeManager.addKnowledgeItem(formData)
-        if (id) {
-          toast.success("تم إضافة العنصر بنجاح")
-          setShowAddDialog(false)
-        } else {
-          toast.error("فشل في إضافة العنصر")
-        }
-      }
+      const tags = formData.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
 
-      // Reset form
-      setFormData({
-        title: "",
-        content: "",
-        category: "",
-        language: "arabic",
-        verified: false,
+      const id = await knowledgeManager.createKnowledgeItem({
+        title: formData.title,
+        content: formData.content,
+        category: formData.category,
+        language: formData.language,
+        tags,
+        isVerified: formData.isVerified,
       })
 
-      // Reload data
-      loadKnowledgeItems()
-      loadAnalytics()
+      if (id) {
+        toast.success("تم إنشاء العنصر بنجاح")
+        setIsCreateDialogOpen(false)
+        resetForm()
+        loadKnowledgeItems()
+        loadAnalytics()
+      } else {
+        toast.error("فشل في إنشاء العنصر")
+      }
     } catch (error) {
-      console.error("Error saving item:", error)
-      toast.error("حدث خطأ أثناء الحفظ")
+      console.error("Error creating item:", error)
+      toast.error("حدث خطأ أثناء إنشاء العنصر")
     }
   }
 
-  // Handle delete item
+  const handleUpdateItem = async () => {
+    if (!editingItem || !formData.title || !formData.content || !formData.category) {
+      toast.error("يرجى ملء جميع الحقول المطلوبة")
+      return
+    }
+
+    try {
+      const tags = formData.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+
+      const success = await knowledgeManager.updateKnowledgeItem(editingItem.id, {
+        title: formData.title,
+        content: formData.content,
+        category: formData.category,
+        language: formData.language,
+        tags,
+        isVerified: formData.isVerified,
+      })
+
+      if (success) {
+        toast.success("تم تحديث العنصر بنجاح")
+        setEditingItem(null)
+        resetForm()
+        loadKnowledgeItems()
+        loadAnalytics()
+      } else {
+        toast.error("فشل في تحديث العنصر")
+      }
+    } catch (error) {
+      console.error("Error updating item:", error)
+      toast.error("حدث خطأ أثناء تحديث العنصر")
+    }
+  }
+
   const handleDeleteItem = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا العنصر؟")) return
 
@@ -159,11 +237,10 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
       }
     } catch (error) {
       console.error("Error deleting item:", error)
-      toast.error("حدث خطأ أثناء الحذف")
+      toast.error("حدث خطأ أثناء حذف العنصر")
     }
   }
 
-  // Handle verify item
   const handleVerifyItem = async (id: string, verified: boolean) => {
     try {
       const success = await knowledgeManager.verifyKnowledgeItem(id, verified)
@@ -176,41 +253,52 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
       }
     } catch (error) {
       console.error("Error verifying item:", error)
-      toast.error("حدث خطأ أثناء التحديث")
+      toast.error("حدث خطأ أثناء تحديث حالة التحقق")
     }
   }
 
-  // Handle export
   const handleExport = async () => {
     try {
-      const items = await knowledgeManager.exportKnowledge({
-        category: selectedCategory === "all" ? undefined : selectedCategory,
-        language: selectedLanguage === "all" ? undefined : selectedLanguage,
-        verified: showVerifiedOnly ? true : undefined,
-      })
-
+      const items = await knowledgeManager.exportKnowledge()
       const dataStr = JSON.stringify(items, null, 2)
-      const dataBlob = new Blob([dataStr], { type: "application/json" })
-      const url = URL.createObjectURL(dataBlob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `knowledge-base-${new Date().toISOString().split("T")[0]}.json`
-      link.click()
-      URL.revokeObjectURL(url)
+      const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
+
+      const exportFileDefaultName = `knowledge-base-${new Date().toISOString().split("T")[0]}.json`
+
+      const linkElement = document.createElement("a")
+      linkElement.setAttribute("href", dataUri)
+      linkElement.setAttribute("download", exportFileDefaultName)
+      linkElement.click()
 
       toast.success("تم تصدير قاعدة المعرفة بنجاح")
     } catch (error) {
-      console.error("Error exporting knowledge:", error)
+      console.error("Error exporting knowledge base:", error)
       toast.error("فشل في تصدير قاعدة المعرفة")
     }
   }
 
-  // Filter items based on search
-  const filteredItems = knowledgeItems.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.content.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      content: "",
+      category: "",
+      language: "arabic",
+      tags: "",
+      isVerified: false,
+    })
+  }
+
+  const startEdit = (item: KnowledgeItem) => {
+    setEditingItem(item)
+    setFormData({
+      title: item.title,
+      content: item.content,
+      category: item.category,
+      language: item.language,
+      tags: item.tags.join(", "),
+      isVerified: item.isVerified,
+    })
+  }
 
   if (!isOpen) return null
 
@@ -222,10 +310,10 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
             <BookOpen className="w-5 h-5" />
             إدارة قاعدة المعرفة
           </DialogTitle>
-          <DialogDescription>إدارة وتحديث المعلومات المتاحة للمساعد الذكي</DialogDescription>
+          <DialogDescription>إدارة وتنظيم محتوى قاعدة المعرفة للمساعد الذكي</DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="items" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="items">العناصر</TabsTrigger>
             <TabsTrigger value="analytics">التحليلات</TabsTrigger>
@@ -233,127 +321,150 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
           </TabsList>
 
           <TabsContent value="items" className="space-y-4">
-            {/* Controls */}
-            <div className="flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex gap-2 items-center">
+            {/* Search and Filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     placeholder="البحث في قاعدة المعرفة..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10"
                   />
                 </div>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="الفئة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الفئات</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="اللغة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع اللغات</SelectItem>
-                    <SelectItem value="arabic">العربية</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center space-x-2">
-                  <Switch id="verified-only" checked={showVerifiedOnly} onCheckedChange={setShowVerifiedOnly} />
-                  <Label htmlFor="verified-only">المحقق فقط</Label>
-                </div>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => setShowAddDialog(true)} className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  إضافة عنصر
-                </Button>
-                <Button variant="outline" onClick={handleExport} className="flex items-center gap-2 bg-transparent">
-                  <Download className="w-4 h-4" />
-                  تصدير
-                </Button>
+
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="اختر الفئة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الفئات</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="اللغة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع اللغات</SelectItem>
+                  {languages.map((language) => (
+                    <SelectItem key={language} value={language}>
+                      {language}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center space-x-2">
+                <Switch id="verified-only" checked={showVerifiedOnly} onCheckedChange={setShowVerifiedOnly} />
+                <Label htmlFor="verified-only">المحقق فقط</Label>
               </div>
             </div>
 
-            {/* Items List */}
-            <div className="max-h-96 overflow-y-auto space-y-2">
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  إضافة عنصر جديد
+                </Button>
+                <Button variant="outline" onClick={handleExport}>
+                  <Download className="w-4 h-4 mr-2" />
+                  تصدير
+                </Button>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                {filteredItems.length} من {knowledgeItems.length} عنصر
+              </div>
+            </div>
+
+            {/* Knowledge Items List */}
+            <div className="max-h-96 overflow-y-auto space-y-3">
               {isLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-500">جاري التحميل...</p>
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="mr-2">جاري التحميل...</span>
                 </div>
               ) : filteredItems.length === 0 ? (
-                <div className="text-center py-8">
-                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">لا توجد عناصر في قاعدة المعرفة</p>
-                </div>
+                <div className="text-center py-8 text-gray-500">لا توجد عناصر تطابق البحث</div>
               ) : (
-                filteredItems.map((item) => (
-                  <Card key={item.id} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold">{item.title}</h4>
-                          <Badge variant={item.verified ? "default" : "secondary"}>
-                            {item.verified ? "محقق" : "غير محقق"}
-                          </Badge>
-                          <Badge variant="outline">{item.category}</Badge>
-                          <Badge variant="outline">{item.language}</Badge>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.content}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Calendar className="w-3 h-3" />
-                          آخر تحديث: {new Date(item.lastUpdated).toLocaleDateString("ar-SA")}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 ml-4">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleVerifyItem(item.id, !item.verified)}
-                          className="text-green-600 hover:text-green-700"
-                        >
-                          {item.verified ? <Shield className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingItem(item)
-                            setFormData({
-                              title: item.title,
-                              content: item.content,
-                              category: item.category,
-                              language: item.language,
-                              verified: item.verified,
-                            })
-                          }}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))
+                <AnimatePresence>
+                  {filteredItems.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                    >
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                {item.title}
+                                {item.isVerified && <CheckCircle className="w-4 h-4 text-green-500" />}
+                              </CardTitle>
+                              <CardDescription className="flex items-center gap-4 mt-1">
+                                <span className="flex items-center gap-1">
+                                  <Tag className="w-3 h-3" />
+                                  {item.category}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Globe className="w-3 h-3" />
+                                  {item.language}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {item.lastUpdated.toLocaleDateString("ar-SA")}
+                                </span>
+                              </CardDescription>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="ghost" onClick={() => startEdit(item)}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleVerifyItem(item.id, !item.isVerified)}
+                              >
+                                {item.isVerified ? (
+                                  <X className="w-4 h-4 text-red-500" />
+                                ) : (
+                                  <Check className="w-4 h-4 text-green-500" />
+                                )}
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => handleDeleteItem(item.id)}>
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2">{item.content}</p>
+                          {item.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {item.tags.map((tag, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               )}
             </div>
           </TabsContent>
@@ -362,46 +473,38 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
             {analytics && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">إجمالي العناصر</CardTitle>
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{analytics.totalItems}</div>
                   </CardContent>
                 </Card>
+
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">العناصر المحققة</CardTitle>
-                    <Shield className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{analytics.verifiedItems}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {analytics.totalItems > 0
-                        ? Math.round((analytics.verifiedItems / analytics.totalItems) * 100)
-                        : 0}
-                      % من المجموع
-                    </p>
+                    <div className="text-2xl font-bold text-green-600">{analytics.verifiedItems}</div>
                   </CardContent>
                 </Card>
+
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">الفئات</CardTitle>
-                    <Filter className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{Object.keys(analytics.categoryCounts).length}</div>
                   </CardContent>
                 </Card>
+
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">محدث مؤخراً</CardTitle>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">اللغات</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{analytics.recentlyUpdated}</div>
-                    <p className="text-xs text-muted-foreground">آخر 7 أيام</p>
+                    <div className="text-2xl font-bold">{Object.keys(analytics.languageCounts).length}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -412,7 +515,7 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
             <Card>
               <CardHeader>
                 <CardTitle>إعدادات قاعدة المعرفة</CardTitle>
-                <CardDescription>تكوين إعدادات إدارة المعرفة</CardDescription>
+                <CardDescription>إعدادات عامة لإدارة قاعدة المعرفة</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -422,10 +525,11 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
                   </div>
                   <Switch />
                 </div>
+
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>النسخ الاحتياطي التلقائي</Label>
-                    <p className="text-sm text-gray-500">إنشاء نسخ احتياطية يومية</p>
+                    <p className="text-sm text-gray-500">إنشاء نسخة احتياطية يومياً</p>
                   </div>
                   <Switch />
                 </div>
@@ -434,28 +538,25 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
           </TabsContent>
         </Tabs>
 
-        {/* Add/Edit Dialog */}
+        {/* Create/Edit Dialog */}
         <Dialog
-          open={showAddDialog || editingItem !== null}
-          onOpenChange={() => {
-            setShowAddDialog(false)
-            setEditingItem(null)
-            setFormData({
-              title: "",
-              content: "",
-              category: "",
-              language: "arabic",
-              verified: false,
-            })
+          open={isCreateDialogOpen || !!editingItem}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsCreateDialogOpen(false)
+              setEditingItem(null)
+              resetForm()
+            }
           }}
         >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editingItem ? "تحرير العنصر" : "إضافة عنصر جديد"}</DialogTitle>
+              <DialogTitle>{editingItem ? "تعديل العنصر" : "إضافة عنصر جديد"}</DialogTitle>
             </DialogHeader>
+
             <div className="space-y-4">
               <div>
-                <Label htmlFor="title">العنوان</Label>
+                <Label htmlFor="title">العنوان *</Label>
                 <Input
                   id="title"
                   value={formData.title}
@@ -463,32 +564,9 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
                   placeholder="عنوان العنصر"
                 />
               </div>
+
               <div>
-                <Label htmlFor="category">الفئة</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="فئة العنصر"
-                />
-              </div>
-              <div>
-                <Label htmlFor="language">اللغة</Label>
-                <Select
-                  value={formData.language}
-                  onValueChange={(value) => setFormData({ ...formData, language: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="arabic">العربية</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="content">المحتوى</Label>
+                <Label htmlFor="content">المحتوى *</Label>
                 <Textarea
                   id="content"
                   value={formData.content}
@@ -497,25 +575,68 @@ export default function KnowledgeManager({ isOpen, onClose }: KnowledgeManagerPr
                   rows={6}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="category">الفئة *</Label>
+                  <Input
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    placeholder="فئة العنصر"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="language">اللغة</Label>
+                  <Select
+                    value={formData.language}
+                    onValueChange={(value) => setFormData({ ...formData, language: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="arabic">العربية</SelectItem>
+                      <SelectItem value="english">English</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="tags">العلامات</Label>
+                <Input
+                  id="tags"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="علامة1, علامة2, علامة3"
+                />
+              </div>
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="verified"
-                  checked={formData.verified}
-                  onCheckedChange={(checked) => setFormData({ ...formData, verified: checked })}
+                  checked={formData.isVerified}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isVerified: checked })}
                 />
                 <Label htmlFor="verified">محقق</Label>
               </div>
+
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setShowAddDialog(false)
+                    setIsCreateDialogOpen(false)
                     setEditingItem(null)
+                    resetForm()
                   }}
                 >
                   إلغاء
                 </Button>
-                <Button onClick={handleSaveItem}>{editingItem ? "تحديث" : "إضافة"}</Button>
+                <Button onClick={editingItem ? handleUpdateItem : handleCreateItem}>
+                  {editingItem ? "تحديث" : "إنشاء"}
+                </Button>
               </div>
             </div>
           </DialogContent>
