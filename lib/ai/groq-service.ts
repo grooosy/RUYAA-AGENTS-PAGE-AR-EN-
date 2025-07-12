@@ -42,12 +42,72 @@ class GroqAIService {
     }
   }
 
+  private detectLanguage(text: string): "ar" | "en" {
+    // Check for Arabic characters
+    const arabicRegex = /[\u0600-\u06FF]/
+    const hasArabic = arabicRegex.test(text)
+    
+    // Check for English words
+    const englishWords = text.toLowerCase().match(/\b[a-z]+\b/g) || []
+    const hasEnglish = englishWords.length > 0
+    
+    // If more than 50% Arabic characters, it's Arabic
+    if (hasArabic && !hasEnglish) return "ar"
+    if (hasEnglish && !hasArabic) return "en"
+    
+    // Mixed or unclear - default to Arabic
+    return "ar"
+  }
+
   async generateResponse(userMessage: string): Promise<string> {
     try {
-      // Analyze user message to understand intent and context
-      const messageAnalysis = this.analyzeUserMessage(userMessage)
+      const detectedLanguage = this.detectLanguage(userMessage)
+      
+      const systemPrompt = detectedLanguage === "en" ? 
+        `You are an AI assistant for Ruyaa Capital, a company specializing in AI agent development and artificial intelligence solutions.
 
-      const systemPrompt = `أنت مساعد ذكي متقدم لشركة رؤيا كابيتال المتخصصة في تطوير الوكلاء الذكيين وحلول الذكاء الاصطناعي.
+Company Information:
+- Company Name: Ruyaa Capital
+- Specialization: AI agent development and artificial intelligence solutions for businesses
+- Email: admin@ruyaacapital.com
+- This is a demo website separate from the main website
+
+Our Services:
+1. Custom AI agent development for companies
+2. Interactive artificial intelligence solutions
+3. Business process automation using AI
+4. Smart chatbot development
+5. Data analysis and intelligent predictions
+6. Team training on AI technologies
+
+What is an AI Agent?
+An AI agent is an intelligent program that can:
+- Understand natural language and interact with users
+- Perform real tasks, not just answer questions
+- Learn from interactions and improve performance
+- Connect to other systems and execute actions
+- Make intelligent decisions based on data
+- Work independently to solve problems
+
+Examples of what AI agents can do:
+- Book appointments and manage calendars
+- Process orders and payments
+- Analyze data and create reports
+- Manage inventory and orders
+- Advanced customer service
+- Automate administrative tasks
+
+Important Instructions:
+- Always respond in English when user writes in English
+- Clearly explain what AI agents are and how they work
+- Focus on real actions that agents can perform
+- Do not act as a financial advisor or financial company
+- This is a separate demo website
+- Do not mention phone numbers - there's a WhatsApp button for contact
+- Think carefully before responding and analyze what the user wants
+- Provide practical and realistic examples` :
+
+        `أنت مساعد ذكي متقدم لشركة رؤيا كابيتال المتخصصة في تطوير الوكلاء الذكيين وحلول الذكاء الاصطناعي.
 
 معلومات الشركة:
 - اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
@@ -81,16 +141,14 @@ class GroqAIService {
 - أتمتة المهام الإدارية
 
 تعليمات مهمة:
-- أجب باللغة العربية دائماً
+- أجب باللغة العربية دائماً عندما يكتب المستخدم بالعربية
 - اشرح بوضوح ما هي الوكلاء الذكيين وكيف تعمل
 - ركز على الإجراءات الحقيقية التي يمكن للوكلاء تنفيذها
 - لا تتصرف كمستشار مالي أو شركة مالية
 - هذا موقع منفصل عن أي موقع رئيسي
 - لا تذكر أرقام هواتف - يوجد زر واتساب للتواصل
 - فكر جيداً قبل الرد وحلل ما يريده المستخدم
-- قدم أمثلة عملية وواقعية
-
-تحليل الرسالة: ${messageAnalysis}`
+- قدم أمثلة عملية وواقعية`
 
       const { text } = await generateText({
         model: this.model,
@@ -100,39 +158,13 @@ class GroqAIService {
         temperature: 0.4,
       })
 
-      return text || "أعتذر، لم أتمكن من معالجة طلبك. يرجى التواصل معنا على admin@ruyaacapital.com"
+      return text || (detectedLanguage === "en" ? 
+        "I apologize, I couldn't process your request. Please contact us at admin@ruyaacapital.com" :
+        "أعتذر، لم أتمكن من معالجة طلبك. يرجى التواصل معنا على admin@ruyaacapital.com")
     } catch (error) {
       console.error("Error generating response:", error)
-      throw new Error("فشل في توليد الرد من الخدمة الذكية")
+      throw new Error("Failed to generate AI response")
     }
-  }
-
-  private analyzeUserMessage(message: string): string {
-    const lowerMessage = message.toLowerCase()
-
-    // Detect language
-    const isArabic = /[\u0600-\u06FF]/.test(message)
-    const language = isArabic ? "عربي" : "إنجليزي"
-
-    // Detect intent
-    let intent = "عام"
-    if (lowerMessage.includes("وكيل") || lowerMessage.includes("agent")) {
-      intent = "استفسار عن الوكلاء الذكيين"
-    } else if (lowerMessage.includes("خدمة") || lowerMessage.includes("service")) {
-      intent = "استفسار عن الخدمات"
-    } else if (lowerMessage.includes("كيف") || lowerMessage.includes("how")) {
-      intent = "طلب شرح أو تعليمات"
-    } else if (lowerMessage.includes("سعر") || lowerMessage.includes("price") || lowerMessage.includes("تكلفة")) {
-      intent = "استفسار عن الأسعار"
-    } else if (lowerMessage.includes("تواصل") || lowerMessage.includes("contact")) {
-      intent = "طلب معلومات التواصل"
-    }
-
-    // Detect complexity
-    const wordCount = message.split(" ").length
-    const complexity = wordCount > 10 ? "معقد" : wordCount > 5 ? "متوسط" : "بسيط"
-
-    return `اللغة: ${language}, النية: ${intent}, التعقيد: ${complexity}`
   }
 }
 
