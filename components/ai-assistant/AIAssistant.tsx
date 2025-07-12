@@ -1,20 +1,22 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Send, Bot, User, X } from "lucide-react"
 import { groqService } from "@/lib/ai/groq-service"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/lib/auth/auth-context"
-import { Send, Maximize2, Minimize2, X, Bot, User } from "lucide-react"
 
 interface Message {
   id: string
   content: string
-  role: "user" | "assistant"
+  sender: "user" | "ai"
   timestamp: Date
+  language?: "ar" | "en"
 }
 
 interface AIAssistantProps {
@@ -23,100 +25,86 @@ interface AIAssistantProps {
 }
 
 export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
-  const { user } = useAuth()
-  const supabase = createClient()
   const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState("")
+  const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const supabase = createClient()
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen && !isMinimized) {
-      setTimeout(() => inputRef.current?.focus(), 100)
-    }
-  }, [isOpen, isMinimized])
-
-  // Add welcome message when first opened
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
-        id: Date.now().toString(),
-        content: `أهلاً وسهلاً! أنا مساعدك الذكي من رؤيا كابيتال.
-
-بقدر ساعدك تفهم كيف الوكلاء الذكيين ممكن يخدموا شركتك ويسهلوا أعمالك.
-
-شو بدك تعرف؟`,
-        role: "assistant",
+        id: "1",
+        content:
+          "مرحبا! أنا مساعد رؤيا كابيتال الذكي. كيف بقدر ساعدك اليوم؟\n\nHello! I'm Ruyaa Capital's AI assistant. How can I help you today?",
+        sender: "ai",
         timestamp: new Date(),
       }
       setMessages([welcomeMessage])
     }
   }, [isOpen, messages.length])
 
-  // Log interaction to Supabase
-  const logInteraction = async (userMessage: string, aiResponse: string) => {
-    if (!user) return
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
 
+  const logConversation = async (userMessage: string, aiResponse: string, language: string) => {
     try {
-      await supabase.from("ai_interactions").insert({
-        user_id: user.id,
-        message: userMessage,
-        response: aiResponse,
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      await supabase.from("ai_conversations").insert({
+        user_id: user?.id || null,
+        user_message: userMessage,
+        ai_response: aiResponse,
+        language: language,
         timestamp: new Date().toISOString(),
-        agent_type: "ai_assistant",
       })
     } catch (error) {
-      console.warn("Failed to log interaction:", error)
+      console.error("Failed to log conversation:", error)
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: inputValue.trim(),
-      role: "user",
+      content: input.trim(),
+      sender: "user",
       timestamp: new Date(),
     }
 
     setMessages((prev) => [...prev, userMessage])
-    const messageContent = inputValue.trim()
-    setInputValue("")
+    setInput("")
     setIsLoading(true)
 
     try {
-      const response = await groqService.generateResponse(messageContent)
+      const response = await groqService.generateResponse(input.trim())
 
-      const assistantMessage: Message = {
+      const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response,
-        role: "assistant",
+        content: response.message,
+        sender: "ai",
         timestamp: new Date(),
+        language: response.analysis.language,
       }
 
-      setMessages((prev) => [...prev, assistantMessage])
+      setMessages((prev) => [...prev, aiMessage])
 
-      // Log to Supabase
-      await logInteraction(messageContent, response)
+      // Log conversation to Supabase
+      await logConversation(input.trim(), response.message, response.analysis.language)
     } catch (error) {
-      console.error("Error generating response:", error)
-
+      console.error("Error getting AI response:", error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "عذراً، صار خطأ بالاتصال. جرب مرة تانية أو تواصل معنا على admin@ruyaacapital.com",
-        role: "assistant",
+        content: "عذراً، حدث خطأ. جرب مرة تانية.\n\nSorry, an error occurred. Please try again.",
+        sender: "ai",
         timestamp: new Date(),
       }
-
       setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
@@ -126,133 +114,92 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      handleSend()
     }
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div
-        className={`bg-black border-2 border-white rounded-3xl shadow-2xl transition-all duration-300 ${
-          isMinimized ? "w-80 h-16" : "w-96 h-[600px]"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between min-h-[72px] px-4 py-4 border-b-2 border-white">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative">
-              <Avatar className="w-12 h-12 border-2 border-white">
-                <AvatarImage src="/images/ruyaa-ai-logo.png" alt="Ruyaa AI" />
-                <AvatarFallback className="bg-white text-black font-bold">AI</AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-black bg-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-bold text-lg whitespace-nowrap">مساعد رؤيا الذكي</h3>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-2 h-2 rounded-full bg-white" />
-                <span className="text-white text-sm whitespace-nowrap">متصل ومتاح</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
-            >
-              {isMinimized ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
-            >
-              <X className="w-5 h-5" />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md h-[600px] bg-white border-2 border-black shadow-2xl">
+        <CardHeader className="bg-black text-white p-4 rounded-t-lg">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold">مساعد رؤيا كابيتال</CardTitle>
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-white hover:bg-white/20 h-8 w-8 p-0">
+              <X className="h-4 w-4" />
             </Button>
           </div>
-        </div>
+        </CardHeader>
 
-        {!isMinimized && (
-          <>
-            {/* Messages */}
-            <div className="h-[400px] p-4 overflow-auto">
-              <div className="space-y-4">
-                {messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                        message.role === "user"
-                          ? "bg-white text-black border-2 border-gray-200"
-                          : "bg-gray-800 text-white border-2 border-gray-600"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        {message.role === "assistant" && <Bot className="w-4 h-4 mt-1 flex-shrink-0" />}
-                        {message.role === "user" && <User className="w-4 h-4 mt-1 flex-shrink-0" />}
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-800 text-white border-2 border-gray-600 rounded-2xl px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Bot className="w-4 h-4" />
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
-                          <div
-                            className="w-2 h-2 bg-white rounded-full animate-bounce"
-                            style={{ animationDelay: "0.1s" }}
-                          />
-                          <div
-                            className="w-2 h-2 bg-white rounded-full animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </div>
-
-            {/* Input */}
-            <div className="min-h-[140px] p-4 border-t-2 border-white">
-              <div className="flex gap-2">
-                <Input
-                  ref={inputRef}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="اكتب رسالتك هنا..."
-                  className="flex-1 bg-gray-900 border-2 border-gray-600 text-white placeholder-gray-400 rounded-full px-4 py-3 focus:border-white focus:ring-0"
-                  disabled={isLoading}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isLoading}
-                  className="w-12 h-12 bg-white text-black hover:bg-gray-200 rounded-full flex-shrink-0 disabled:opacity-50"
+        <CardContent className="p-0 h-[calc(600px-140px)] flex flex-col">
+          <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex items-start gap-3 ${message.sender === "user" ? "flex-row-reverse" : ""}`}
                 >
-                  <Send className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="mt-3 text-center">
-                <p className="text-gray-400 text-xs">
-                  للتواصل المباشر:
-                  <span className="text-white font-medium"> admin@ruyaacapital.com</span>
-                </p>
-              </div>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.sender === "user" ? "bg-black text-white" : "bg-gray-100 text-black border border-black"
+                    }`}
+                  >
+                    {message.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                  </div>
+                  <div
+                    className={`max-w-[80%] p-3 rounded-lg border border-black ${
+                      message.sender === "user" ? "bg-black text-white" : "bg-white text-black"
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 text-black border border-black flex items-center justify-center">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div className="bg-white text-black p-3 rounded-lg border border-black">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-black rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-black rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-black rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </div>
+          </ScrollArea>
+
+          <div className="p-4 border-t border-black">
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="اكتب رسالتك هنا... / Type your message..."
+                className="flex-1 border-black focus:ring-black"
+                disabled={isLoading}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={isLoading || !input.trim()}
+                className="bg-black text-white hover:bg-gray-800 border border-black"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

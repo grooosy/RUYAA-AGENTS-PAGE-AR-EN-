@@ -12,10 +12,10 @@ export default function ChatButton() {
     <>
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-40 w-16 h-16 rounded-full bg-black border-2 border-white text-white hover:bg-gray-800 shadow-2xl"
-        size="icon"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-black text-white hover:bg-gray-800 shadow-lg border-2 border-white z-40"
+        size="lg"
       >
-        <MessageCircle className="w-8 h-8" />
+        <MessageCircle className="h-6 w-6" />
       </Button>
 
       <AIAssistant isOpen={isOpen} onClose={() => setIsOpen(false)} />
