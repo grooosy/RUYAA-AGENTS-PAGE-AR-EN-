@@ -28,18 +28,16 @@ export default function TestChatPage() {
   return (
     <AuthProvider>
       <LanguageProvider>
-        <div className="min-h-screen">
+        <main className="relative">
           <Header />
-          <main className="py-20">
-            <div className="container mx-auto px-4">
+          <div className="min-h-screen pt-20">
+            <div className="container mx-auto px-4 py-8">
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-8">
-                  <h1 className="text-4xl font-bold mb-4 text-shadow-lg">AI Assistant Test Center</h1>
-                  <p className="text-xl text-gray-200 text-shadow">Test and validate AI assistant functionality</p>
+                  <h1 className="text-4xl font-bold text-white mb-4 text-shadow-lg">AI Assistant Test</h1>
+                  <p className="text-xl text-gray-300 text-shadow">Test our AI assistant capabilities and responses</p>
                 </div>
-                <div className="content-card rounded-lg p-6">
-                  <ChatTester />
-                </div>
+                <ChatTester />
                 {/* Quick Test Messages */}
                 <Card className="mt-8">
                   <CardHeader>
@@ -142,7 +140,7 @@ export default function TestChatPage() {
                 </Card>
               </div>
             </div>
-          </main>
+          </div>
           <Footer />
           {/* AI Assistant */}
           <AIAssistant isOpen={isAIAssistantOpen} onToggle={() => setIsAIAssistantOpen(!isAIAssistantOpen)} />
@@ -152,7 +150,7 @@ export default function TestChatPage() {
 
           {/* Toast notifications */}
           <Toaster position="top-right" richColors closeButton />
-        </div>
+        </main>
       </LanguageProvider>
     </AuthProvider>
   )
