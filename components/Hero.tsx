@@ -1,81 +1,53 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
-import Image from "next/image"
-import { useLanguage } from "@/contexts/LanguageContext"
-import { useAuth } from "@/lib/auth/auth-context"
 import { useState } from "react"
-import AuthModal from "@/components/auth/AuthModal"
+import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/contexts/LanguageContext"
+import { AuthModal } from "@/components/auth/AuthModal"
 
-export default function Hero() {
-  const { t } = useLanguage()
-  const { user } = useAuth()
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-
-  const handleLoginClick = () => {
-    if (!user) {
-      setIsAuthModalOpen(true)
-    }
-  }
+export function Hero() {
+  const { language, translations } = useLanguage()
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
   return (
-    <>
-      <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Content */}
-        <div className="relative z-20 container mx-auto px-4 text-center flex items-center justify-center min-h-screen">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-4xl mx-auto py-20 relative"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mb-8 flex justify-center"
-            >
-              <Image
-                src="/images/ruyaa-ai-logo.png"
-                alt="Ruyaa AI Logo"
-                width={120}
-                height={120}
-                className="drop-shadow-2xl"
-              />
-            </motion.div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-white leading-tight text-shadow-lg">
-              {t("hero.title")}
+    <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto text-center">
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white text-shadow-lg">
+              {translations.hero.title}
             </h1>
+            <p className="text-xl sm:text-2xl md:text-3xl text-gray-200 max-w-4xl mx-auto text-shadow">
+              {translations.hero.subtitle}
+            </p>
+          </div>
 
-            <p className="text-xl md:text-2xl text-gray-100 mb-12 leading-relaxed text-shadow">{t("hero.subtitle")}</p>
+          <div className="space-y-6">
+            <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto text-shadow">
+              {translations.hero.description}
+            </p>
 
-            <div className="flex flex-col items-center gap-6">
-              {/* Main Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button
-                  onClick={handleLoginClick}
-                  size="lg"
-                  variant="primary"
-                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-900/50 transition-all duration-300"
-                >
-                  {t("hero.loginButton")}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-800/50 transition-all duration-300 bg-transparent border-white/30 hover:border-white/50"
-                >
-                  {t("hero.supportButton")}
-                </Button>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button
+                size="lg"
+                className="btn-3d bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 text-lg font-semibold shadow-xl"
+                onClick={() => setShowAuthModal(true)}
+              >
+                {translations.hero.cta}
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="btn-3d border-white text-white hover:bg-white hover:text-slate-900 px-8 py-3 text-lg font-semibold shadow-xl bg-transparent"
+              >
+                {translations.hero.learnMore}
+              </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-    </>
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+    </section>
   )
 }
