@@ -1,113 +1,153 @@
-import { streamText } from "ai"
+import { generateText } from "ai"
 import { groq } from "@ai-sdk/groq"
 
-interface KnowledgeItem {
-  id: string
-  title: string
+interface AIResponse {
   content: string
-  category: string
-  language: string
-  tags: string[]
-  isVerified: boolean
-  lastUpdated: Date
+  responseTime: number
+  confidence: number
+  sources: string[]
+  requiresHumanFollowup: boolean
+}
+
+interface ConversationMessage {
+  role: "user" | "assistant"
+  content: string
+}
+
+interface GenerateOptions {
+  userId?: string
+  sessionId: string
+  deviceInfo: any
+  timestamp?: string
+  realTimeData?: {
+    currentTime: string
+    userLocation: string
+    sessionDuration: number
+    messageCount?: number
+  }
 }
 
 class GroqAIService {
   private model = groq("llama-3.1-8b-instant")
 
+  private systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
+
+معلومات الشركة:
+- اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
+- التخصص: حلول الوكلاء الذكيين والذكاء الاصطناعي للشركات
+- الموقع: سوريا
+
+الخدمات الرئيسية:
+1. تطوير وكلاء ذكيين مخصصين للشركات
+2. حلول الذكاء الاصطناعي للأعمال
+3. أتمتة العمليات التجارية
+4. استشارات تقنية في مجال الذكاء الاصطناعي
+5. تدريب الفرق على استخدام التقنيات الحديثة
+
+إرشادات المحادثة:
+- أجب باللغة العربية دائماً
+- كن مفيداً ومهذباً
+- ركز على خدمات الشركة
+- لا تقدم معلومات تقنية مفصلة عن الأسعار أو التفاصيل الدقيقة
+- وجه العملاء للتواصل المباشر للحصول على عروض أسعار مخصصة
+- لا تخترع معلومات غير موجودة
+- إذا لم تكن متأكداً من إجابة، اطلب من العميل التواصل مباشرة
+
+تذكر: أنت مساعد أولي، والهدف هو تقديم معلومات عامة وتوجيه العملاء للتواصل المباشر للتفاصيل المحددة.`
+
   async testConnection(): Promise<boolean> {
     try {
-      const { text } = await streamText({
+      const response = await generateText({
         model: this.model,
         prompt: "Test connection",
         maxTokens: 10,
       })
-
-      // Convert stream to text
-      let result = ""
-      for await (const chunk of text) {
-        result += chunk
-      }
-
-      return result.length > 0
+      return !!response.text
     } catch (error) {
       console.error("Groq connection test failed:", error)
       return false
     }
   }
 
-  async generateResponse(userMessage: string, knowledgeItems: KnowledgeItem[] = []): Promise<string> {
+  async generateResponse(conversationHistory: ConversationMessage[], options: GenerateOptions): Promise<AIResponse> {
+    const startTime = Date.now()
+
     try {
-      const systemPrompt = this.buildSystemPrompt(knowledgeItems)
+      const userPrompt = this.buildUserPrompt(conversationHistory, options)
 
-      const { text } = await streamText({
+      const response = await generateText({
         model: this.model,
-        system: systemPrompt,
-        prompt: userMessage,
+        system: this.systemPrompt,
+        prompt: userPrompt,
+        maxTokens: 800,
         temperature: 0.3,
-        maxTokens: 500,
       })
 
-      // Convert stream to text
-      let response = ""
-      for await (const chunk of text) {
-        response += chunk
+      const responseTime = Date.now() - startTime
+      const content = response.text
+
+      const requiresHumanFollowup = this.analyzeHumanFollowupNeed(content)
+      const confidence = this.calculateConfidence(content, conversationHistory)
+
+      return {
+        content,
+        responseTime,
+        confidence,
+        sources: ["groq-ai", "ruyaa-knowledge-base"],
+        requiresHumanFollowup,
       }
-
-      return response || this.getFallbackResponse(userMessage)
     } catch (error) {
-      console.error("Error generating response:", error)
-      return this.getFallbackResponse(userMessage)
+      console.error("Error generating AI response:", error)
+      throw new Error("فشل في توليد الاستجابة من الذكاء الاصطناعي")
     }
   }
 
-  private buildSystemPrompt(knowledgeItems: KnowledgeItem[]): string {
-    let systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي.
+  private buildUserPrompt(conversationHistory: ConversationMessage[], options: GenerateOptions): string {
+    let prompt = "سجل المحادثة:\n"
 
-معلومات الشركة:
-- الاسم: رؤيا كابيتال (Ruyaa Capital)
-- التخصص: تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي
-- الخدمات: وكلاء الدعم الذكي، أتمتة المبيعات، إدارة وسائل التواصل الاجتماعي، والحلول المخصصة
+    conversationHistory.forEach((message, index) => {
+      prompt += `${message.role === "user" ? "العميل" : "المساعد"}: ${message.content}\n`
+    })
 
-تعليمات مهمة:
-1. استخدم المعلومات من قاعدة المعرفة أدناه للإجابة على الأسئلة
-2. إذا لم تجد المعلومات في قاعدة المعرفة، اطلب من المستخدم التواصل مباشرة مع الشركة
-3. لا تخترع أرقام هواتف أو عناوين بريد إلكتروني
-4. كن مهذباً ومفيداً
-5. أجب باللغة العربية إلا إذا طلب المستخدم الإنجليزية
+    prompt += "\nيرجى الرد بطريقة مفيدة ومهنية ومباشرة."
 
-قاعدة المعرفة:`
-
-    if (knowledgeItems.length > 0) {
-      knowledgeItems.forEach((item) => {
-        systemPrompt += `\n\n${item.title}:\n${item.content}`
-      })
-    } else {
-      systemPrompt += `\n\nلا توجد معلومات محددة متاحة في قاعدة المعرفة حالياً. يرجى توجيه المستخدم للتواصل مباشرة مع الشركة للحصول على معلومات دقيقة.`
-    }
-
-    return systemPrompt
+    return prompt
   }
 
-  private getFallbackResponse(userMessage: string): string {
-    const lowerMessage = userMessage.toLowerCase()
+  private analyzeHumanFollowupNeed(content: string): boolean {
+    const followupKeywords = [
+      "سعر",
+      "تكلفة",
+      "عرض سعر",
+      "اتفاقية",
+      "عقد",
+      "تفاصيل تقنية",
+      "تخصيص",
+      "مشروع",
+      "متطلبات خاصة",
+      "استشارة",
+    ]
 
-    if (
-      lowerMessage.includes("تواصل") ||
-      lowerMessage.includes("اتصال") ||
-      lowerMessage.includes("هاتف") ||
-      lowerMessage.includes("contact") ||
-      lowerMessage.includes("phone")
-    ) {
-      return `للتواصل مع رؤيا كابيتال، يرجى استخدام معلومات الاتصال المحدثة في قاعدة المعرفة. يمكنك أيضاً الوصول إلى إدارة قاعدة المعرفة من خلال النقر على أيقونة الروبوت في أعلى النافذة لتحديث معلومات الاتصال.`
+    return followupKeywords.some((keyword) => content.toLowerCase().includes(keyword.toLowerCase()))
+  }
+
+  private calculateConfidence(content: string, conversationHistory: ConversationMessage[]): number {
+    let confidence = 0.8
+
+    if (content.includes("رؤيا كابيتال") || content.includes("وكيل ذكي")) {
+      confidence += 0.1
     }
 
-    if (lowerMessage.includes("خدمات") || lowerMessage.includes("services")) {
-      return `رؤيا كابيتال متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي. للحصول على تفاصيل دقيقة حول خدماتنا، يرجى التواصل معنا مباشرة أو تحديث قاعدة المعرفة بالمعلومات الصحيحة.`
+    if (content.length < 50) {
+      confidence -= 0.2
     }
 
-    return `شكراً لك على تواصلك مع رؤيا كابيتال. للحصول على معلومات دقيقة ومحدثة، يرجى التواصل معنا مباشرة أو تحديث قاعدة المعرفة بالمعلومات الصحيحة من خلال النقر على أيقونة الروبوت في أعلى النافذة.`
+    if (content.length > 200) {
+      confidence += 0.1
+    }
+
+    return Math.min(Math.max(confidence, 0.1), 1.0)
   }
 }
 
-export const groqService = new GroqAIService()
+export const groqAI = new GroqAIService()
