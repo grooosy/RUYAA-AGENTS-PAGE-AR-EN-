@@ -48,6 +48,7 @@
     "cmdk": "latest",
     "embla-carousel-react": "latest",
     "framer-motion": "latest",
+    "groq-sdk": "latest",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",

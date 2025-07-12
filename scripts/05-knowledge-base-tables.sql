@@ -162,26 +162,42 @@ INSERT INTO knowledge_base (title, content, category, language, tags, is_verifie
 ),
 (
     'Ruyaa Capital Services',
-    'Ruyaa Capital is a specialized company in developing intelligent agent solutions and artificial intelligence. We provide comprehensive services including: intelligent support agents, sales automation, social media management, and customized solutions according to client needs.',
+    'Ruyaa Capital is a company specialized in developing intelligent agent solutions and artificial intelligence. We provide comprehensive services including: intelligent support agents, sales automation, social media management, and customized solutions according to client needs.',
     'services',
     'english',
     ARRAY['services', 'intelligent agents', 'artificial intelligence'],
     true
 ),
 (
-    'معلومات الشركة',
-    'رؤيا كابيتال هي شركة رائدة في مجال الذكاء الاصطناعي والوكلاء الذكيين. نحن نساعد الشركات على تحسين خدمة العملاء وزيادة الكفاءة من خلال حلولنا المتطورة.',
-    'company',
+    'سياسة التسعير',
+    'نحن نقدم عروض أسعار مخصصة لكل عميل بناءً على حجم الشركة واحتياجاتها، نوع الخدمات المطلوبة، ومستوى التخصيص المطلوب. للحصول على عرض سعر دقيق، يرجى التواصل معنا مباشرة.',
+    'pricing',
     'arabic',
-    ARRAY['شركة', 'معلومات', 'رؤيا كابيتال'],
+    ARRAY['أسعار', 'عروض', 'تسعير'],
     true
 ),
 (
-    'Company Information',
-    'Ruyaa Capital is a leading company in the field of artificial intelligence and intelligent agents. We help companies improve customer service and increase efficiency through our advanced solutions.',
-    'company',
+    'Pricing Policy',
+    'We provide customized price quotes for each client based on company size and needs, type of services required, and level of customization needed. For an accurate price quote, please contact us directly.',
+    'pricing',
     'english',
-    ARRAY['company', 'information', 'ruyaa capital'],
+    ARRAY['pricing', 'quotes', 'costs'],
+    true
+),
+(
+    'الوكيل الذكي للدعم',
+    'وكيل الدعم الذكي هو نظام متطور يستخدم الذكاء الاصطناعي لتقديم دعم عملاء على مدار الساعة. يمكنه فهم استفسارات العملاء والرد عليها بطريقة طبيعية ومفيدة، مما يحسن تجربة العملاء ويقلل من أعباء فريق الدعم.',
+    'products',
+    'arabic',
+    ARRAY['دعم', 'عملاء', 'ذكي'],
+    true
+),
+(
+    'Intelligent Support Agent',
+    'The intelligent support agent is an advanced system that uses artificial intelligence to provide 24/7 customer support. It can understand customer inquiries and respond to them in a natural and helpful way, improving customer experience and reducing the burden on support teams.',
+    'products',
+    'english',
+    ARRAY['support', 'customers', 'intelligent'],
     true
 );
 

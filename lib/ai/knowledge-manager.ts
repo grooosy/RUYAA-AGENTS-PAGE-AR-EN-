@@ -37,10 +37,10 @@ export class KnowledgeManager {
     try {
       const { error } = await this.supabase.from("knowledge_base").select("id").limit(1).single()
 
-      // If no error or just no rows, table exists
-      return !error || error.code !== "PGRST116"
+      // If error is null or it's just "no rows" error, table exists
+      return error === null || error.code === "PGRST116"
     } catch (error) {
-      console.warn("Knowledge base table may not exist:", error)
+      console.warn("Knowledge base table does not exist yet")
       return false
     }
   }
@@ -48,7 +48,18 @@ export class KnowledgeManager {
   // Search knowledge base with full-text search
   async searchKnowledge(query: string, options: SearchOptions = {}): Promise<KnowledgeItem[]> {
     try {
-      let queryBuilder = this.supabase.from("knowledge_base").select("*").textSearch("content", query)
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.warn("Knowledge base table not found, returning empty results")
+        return []
+      }
+
+      let queryBuilder = this.supabase.from("knowledge_base").select("*")
+
+      // Add text search if query is provided
+      if (query && query.trim()) {
+        queryBuilder = queryBuilder.textSearch("content", query)
+      }
 
       if (options.category) {
         queryBuilder = queryBuilder.eq("category", options.category)
@@ -63,7 +74,7 @@ export class KnowledgeManager {
       }
 
       const { data, error } = await queryBuilder
-        .order("relevance_score", { ascending: false })
+        .order("updated_at", { ascending: false })
         .limit(options.limit || 10)
         .range(options.offset || 0, (options.offset || 0) + (options.limit || 10) - 1)
 
@@ -82,6 +93,12 @@ export class KnowledgeManager {
   // Get all knowledge items with filtering
   async getKnowledgeItems(options: SearchOptions = {}): Promise<KnowledgeItem[]> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.warn("Knowledge base table not found, returning empty results")
+        return []
+      }
+
       let queryBuilder = this.supabase.from("knowledge_base").select("*")
 
       if (options.category) {
@@ -116,6 +133,12 @@ export class KnowledgeManager {
   // Create new knowledge item
   async createKnowledgeItem(item: Omit<KnowledgeItem, "id" | "lastUpdated">): Promise<string | null> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.error("Knowledge base table not found, cannot create item")
+        return null
+      }
+
       const { data, error } = await this.supabase
         .from("knowledge_base")
         .insert({
@@ -146,6 +169,12 @@ export class KnowledgeManager {
   // Update existing knowledge item
   async updateKnowledgeItem(id: string, updates: Partial<KnowledgeItem>): Promise<boolean> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.error("Knowledge base table not found, cannot update item")
+        return false
+      }
+
       const updateData: any = {}
 
       if (updates.title) updateData.title = updates.title
@@ -175,6 +204,12 @@ export class KnowledgeManager {
   // Delete knowledge item
   async deleteKnowledgeItem(id: string): Promise<boolean> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.error("Knowledge base table not found, cannot delete item")
+        return false
+      }
+
       const { error } = await this.supabase.from("knowledge_base").delete().eq("id", id)
 
       if (error) {
@@ -192,6 +227,12 @@ export class KnowledgeManager {
   // Get knowledge item by ID
   async getKnowledgeItemById(id: string): Promise<KnowledgeItem | null> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.warn("Knowledge base table not found")
+        return null
+      }
+
       const { data, error } = await this.supabase.from("knowledge_base").select("*").eq("id", id).single()
 
       if (error) {
@@ -209,6 +250,17 @@ export class KnowledgeManager {
   // Get analytics data
   async getAnalytics(): Promise<AnalyticsData> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        return {
+          totalItems: 0,
+          verifiedItems: 0,
+          categoryCounts: {},
+          languageCounts: {},
+          recentUpdates: [],
+        }
+      }
+
       // Get total counts
       const { count: totalItems } = await this.supabase
         .from("knowledge_base")
@@ -275,6 +327,13 @@ export class KnowledgeManager {
       errors: [] as string[],
     }
 
+    const tableExists = await this.checkTableExists()
+    if (!tableExists) {
+      results.errors.push("Knowledge base table not found")
+      results.failed = items.length
+      return results
+    }
+
     for (const item of items) {
       try {
         const id = await this.createKnowledgeItem(item)
@@ -306,6 +365,11 @@ export class KnowledgeManager {
   // Get categories
   async getCategories(): Promise<string[]> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        return []
+      }
+
       const { data, error } = await this.supabase.from("knowledge_base").select("category").order("category")
 
       if (error) {
@@ -324,18 +388,71 @@ export class KnowledgeManager {
   // Get languages
   async getLanguages(): Promise<string[]> {
     try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        return []
+      }
+
       const { data, error } = await this.supabase.from("knowledge_base").select("language").order("language")
 
       if (error) {
         console.error("Error fetching languages:", error)
-        return ["arabic", "english"]
+        return []
       }
 
       const languages = [...new Set(data?.map((item) => item.language) || [])]
       return languages.filter(Boolean)
     } catch (error) {
       console.error("Error in getLanguages:", error)
-      return ["arabic", "english"]
+      return []
+    }
+  }
+
+  // Initialize knowledge base with default data
+  async initializeKnowledgeBase(): Promise<boolean> {
+    try {
+      const tableExists = await this.checkTableExists()
+      if (!tableExists) {
+        console.error("Knowledge base table not found, cannot initialize")
+        return false
+      }
+
+      // Check if we already have data
+      const existingItems = await this.getKnowledgeItems({ limit: 1 })
+      if (existingItems.length > 0) {
+        console.log("Knowledge base already has data, skipping initialization")
+        return true
+      }
+
+      // Add default knowledge items
+      const defaultItems = [
+        {
+          title: "خدمات رؤيا كابيتال",
+          content:
+            "رؤيا كابيتال شركة متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي. نقدم خدمات شاملة تشمل: وكلاء الدعم الذكي، أتمتة المبيعات، إدارة وسائل التواصل الاجتماعي، والحلول المخصصة حسب احتياجات العميل.",
+          category: "services",
+          language: "arabic",
+          tags: ["خدمات", "وكلاء ذكيين", "ذكاء اصطناعي"],
+          isVerified: true,
+        },
+        {
+          title: "Ruyaa Capital Services",
+          content:
+            "Ruyaa Capital is a company specialized in developing intelligent agent solutions and artificial intelligence. We provide comprehensive services including: intelligent support agents, sales automation, social media management, and customized solutions according to client needs.",
+          category: "services",
+          language: "english",
+          tags: ["services", "intelligent agents", "artificial intelligence"],
+          isVerified: true,
+        },
+      ]
+
+      const results = await this.bulkImport(defaultItems)
+      console.log(`Knowledge base initialized: ${results.success} items added, ${results.failed} failed`)
+
+      return results.success > 0
+    } catch (error) {
+      console.error("Error initializing knowledge base:", error)
+      return false
     }
   }
 
