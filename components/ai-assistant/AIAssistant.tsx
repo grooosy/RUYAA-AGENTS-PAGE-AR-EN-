@@ -1,182 +1,154 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { MessageCircle, Send, Bot, User, Loader2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+
+interface AIAssistantProps {
+  isOpen: boolean
+  onClose: () => void
+}
 
 interface Message {
   id: string
-  role: "user" | "assistant"
   content: string
+  role: "user" | "assistant"
   timestamp: Date
 }
 
-export default function AIAssistant() {
+export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
   const [isMounted, setIsMounted] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
-  const [inputMessage, setInputMessage] = useState("")
+  const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState("disconnected")
 
   useEffect(() => {
     setIsMounted(true)
+    if (typeof window !== "undefined") {
+      setConnectionStatus("connected")
+    }
   }, [])
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
+      content: input,
       role: "user",
-      content: inputMessage.trim(),
       timestamp: new Date(),
     }
 
     setMessages((prev) => [...prev, userMessage])
-    setInputMessage("")
+    setInput("")
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
+      // Simulate AI response
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
+        content: `I understand you said: "${userMessage.content}". This is a test response from the AI assistant.`,
         role: "assistant",
-        content: `I understand you're asking about "${userMessage.content}". This is a simulated response from the AI assistant. In a real implementation, this would connect to your Groq AI service.`,
         timestamp: new Date(),
       }
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Sorry, I encountered an error while processing your request. Please try again.",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, errorMessage])
+      console.error("Error sending message:", error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
+  const clearChat = () => {
+    setMessages([])
   }
 
   if (!isMounted) {
-    return (
-      <Button disabled>
-        <MessageCircle className="h-4 w-4 mr-2" />
-        Loading...
-      </Button>
-    )
+    return null
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <MessageCircle className="h-4 w-4 mr-2" />
-          Open AI Assistant
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] h-[600px] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl h-[600px] flex flex-col">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
             AI Assistant
+            <Badge variant={connectionStatus === "connected" ? "default" : "destructive"}>{connectionStatus}</Badge>
           </DialogTitle>
-          <DialogDescription>Chat with our AI assistant for help and information</DialogDescription>
+          <DialogDescription>Chat with the AI assistant for help and support</DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages */}
-          <ScrollArea className="flex-1 mb-4 border rounded-lg p-4">
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Hello! I'm your AI assistant. How can I help you today?</p>
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
-                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        {message.role === "assistant" && <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />}
-                        {message.role === "user" && <User className="h-4 w-4 mt-0.5 flex-shrink-0" />}
-                        <div className="flex-1">
-                          <div className="text-sm">{message.content}</div>
-                          <div className="text-xs opacity-70 mt-1">{message.timestamp.toLocaleTimeString()}</div>
+        <div className="flex-1 flex flex-col gap-4">
+          <ScrollArea className="flex-1 border rounded-lg p-4">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <p>No messages yet. Start a conversation!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <Card
+                    key={message.id}
+                    className={`${message.role === "user" ? "ml-8 bg-blue-50" : "mr-8 bg-gray-50"}`}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge variant={message.role === "user" ? "default" : "secondary"}>
+                          {message.role === "user" ? "You" : "AI"}
+                        </Badge>
+                        <span className="text-xs text-gray-500">{message.timestamp.toLocaleTimeString()}</span>
+                      </div>
+                      <p className="text-sm">{message.content}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+                {isLoading && (
+                  <Card className="mr-8 bg-gray-50">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">AI</Badge>
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                          <div
+                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          ></div>
+                          <div
+                            className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          ></div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))
-              )}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-4 w-4" />
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">AI is thinking...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </ScrollArea>
 
-          {/* Input */}
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2">
             <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
+              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
               disabled={isLoading}
-              className="flex-1"
             />
-            <Button onClick={sendMessage} disabled={!inputMessage.trim() || isLoading} size="icon">
-              <Send className="h-4 w-4" />
+            <Button onClick={handleSendMessage} disabled={isLoading || !input.trim()}>
+              Send
+            </Button>
+            <Button variant="outline" onClick={clearChat} disabled={messages.length === 0}>
+              Clear
             </Button>
           </div>
-        </div>
-
-        {/* Status */}
-        <div className="flex justify-between items-center pt-2 text-xs text-muted-foreground flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">
-              {messages.length} messages
-            </Badge>
-            <Badge variant={isLoading ? "default" : "secondary"} className="text-xs">
-              {isLoading ? "Processing" : "Ready"}
-            </Badge>
-          </div>
-          <div>Powered by Groq AI</div>
         </div>
       </DialogContent>
     </Dialog>

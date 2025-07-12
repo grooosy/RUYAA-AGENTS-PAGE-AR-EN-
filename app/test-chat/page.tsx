@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import ChatTester from "@/components/ai-assistant/ChatTester"
 import AIAssistant from "@/components/ai-assistant/AIAssistant"
@@ -9,42 +10,43 @@ import DebugPanel from "@/components/ai-assistant/DebugPanel"
 
 export default function TestChatPage() {
   const [isMounted, setIsMounted] = useState(false)
-  const [browserInfo, setBrowserInfo] = useState<{
-    userAgent: string
-    language: string
-    platform: string
-    cookieEnabled: boolean
-    onlineStatus: boolean
-    screenResolution: string
-    viewportSize: string
-    timeZone: string
-  } | null>(null)
+  const [showAIAssistant, setShowAIAssistant] = useState(false)
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
+  const [browserInfo, setBrowserInfo] = useState<any>(null)
+  const [screenInfo, setScreenInfo] = useState<any>(null)
 
   useEffect(() => {
     setIsMounted(true)
 
-    // Only access browser APIs after mounting
     if (typeof window !== "undefined") {
       setBrowserInfo({
         userAgent: navigator.userAgent,
         language: navigator.language,
         platform: navigator.platform,
         cookieEnabled: navigator.cookieEnabled,
-        onlineStatus: navigator.onLine,
-        screenResolution: `${screen.width}x${screen.height}`,
-        viewportSize: `${window.innerWidth}x${window.innerHeight}`,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        onLine: navigator.onLine,
       })
+
+      if (typeof screen !== "undefined") {
+        setScreenInfo({
+          width: screen.width,
+          height: screen.height,
+          availWidth: screen.availWidth,
+          availHeight: screen.availHeight,
+          colorDepth: screen.colorDepth,
+          pixelDepth: screen.pixelDepth,
+        })
+      }
     }
   }, [])
 
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center py-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">AI Chat Testing Environment</h1>
-            <p className="text-lg text-gray-600">Loading...</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Loading Chat Test Environment...</h1>
+            <div className="animate-pulse bg-gray-200 h-4 w-48 mx-auto rounded"></div>
           </div>
         </div>
       </div>
@@ -53,113 +55,55 @@ export default function TestChatPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center py-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">AI Chat Testing Environment</h1>
-          <p className="text-lg text-gray-600 mb-6">
-            Test and debug AI assistant functionality with comprehensive tools
-          </p>
-          <div className="flex justify-center gap-2 flex-wrap">
-            <Badge variant="secondary">Groq Integration</Badge>
-            <Badge variant="secondary">Real-time Testing</Badge>
-            <Badge variant="secondary">Debug Tools</Badge>
-            <Badge variant="secondary">Performance Monitoring</Badge>
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Chat Test Environment</h1>
+          <p className="text-gray-600 mb-6">Test and debug AI chat functionality</p>
+
+          <div className="flex flex-wrap justify-center gap-2 mb-6">
+            <Badge variant="outline">Browser: {browserInfo?.platform || "Unknown"}</Badge>
+            <Badge variant="outline">
+              Screen: {screenInfo ? `${screenInfo.width}x${screenInfo.height}` : "Unknown"}
+            </Badge>
+            <Badge variant="outline">Online: {browserInfo?.onLine ? "Yes" : "No"}</Badge>
+            <Badge variant="outline">Cookies: {browserInfo?.cookieEnabled ? "Enabled" : "Disabled"}</Badge>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <Button onClick={() => setShowAIAssistant(true)} className="bg-blue-600 hover:bg-blue-700">
+              Open AI Assistant
+            </Button>
+            <Button onClick={() => setShowDebugPanel(!showDebugPanel)} variant="outline">
+              {showDebugPanel ? "Hide" : "Show"} Debug Panel
+            </Button>
           </div>
         </div>
 
-        {/* Browser Information */}
-        {browserInfo && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Browser Environment</CardTitle>
-              <CardDescription>Current browser and system information</CardDescription>
+              <CardTitle>Chat Tester</CardTitle>
+              <CardDescription>Test chat functionality and performance</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <strong>Platform:</strong> {browserInfo.platform}
-                </div>
-                <div>
-                  <strong>Language:</strong> {browserInfo.language}
-                </div>
-                <div>
-                  <strong>Cookies:</strong> {browserInfo.cookieEnabled ? "Enabled" : "Disabled"}
-                </div>
-                <div>
-                  <strong>Online:</strong> {browserInfo.onlineStatus ? "Yes" : "No"}
-                </div>
-                <div>
-                  <strong>Screen:</strong> {browserInfo.screenResolution}
-                </div>
-                <div>
-                  <strong>Viewport:</strong> {browserInfo.viewportSize}
-                </div>
-                <div>
-                  <strong>Timezone:</strong> {browserInfo.timeZone}
-                </div>
-                <div>
-                  <strong>User Agent:</strong> {browserInfo.userAgent.slice(0, 20)}...
-                </div>
-              </div>
+              <ChatTester />
             </CardContent>
           </Card>
-        )}
 
-        {/* Main Testing Interface */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Chat Tester */}
-          <div className="space-y-4">
-            <ChatTester />
-          </div>
-
-          {/* Debug Panel */}
-          <div className="space-y-4">
-            <DebugPanel />
-          </div>
+          {showDebugPanel && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Debug Panel</CardTitle>
+                <CardDescription>System monitoring and diagnostics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DebugPanel />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {/* AI Assistant Modal Trigger */}
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Assistant Modal</CardTitle>
-            <CardDescription>Test the modal AI assistant interface</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AIAssistant />
-          </CardContent>
-        </Card>
-
-        {/* Additional Testing Tools */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Testing Guidelines</CardTitle>
-            <CardDescription>How to effectively test the AI assistant</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Test Scenarios:</h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-                  <li>Basic conversation flow</li>
-                  <li>Error handling and recovery</li>
-                  <li>Long conversation threads</li>
-                  <li>Special characters and formatting</li>
-                  <li>Network interruption scenarios</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Performance Metrics:</h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-                  <li>Response time measurement</li>
-                  <li>Token usage tracking</li>
-                  <li>Error rate monitoring</li>
-                  <li>Memory usage analysis</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {showAIAssistant && <AIAssistant isOpen={showAIAssistant} onClose={() => setShowAIAssistant(false)} />}
       </div>
     </div>
   )
