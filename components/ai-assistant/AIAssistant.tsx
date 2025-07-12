@@ -49,11 +49,11 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        content: `مرحباً! أنا مساعدك الذكي من رؤيا كابيتال.
+        content: `أهلاً وسهلاً! أنا مساعدك الذكي من رؤيا كابيتال.
 
-أنا هنا لأساعدك في فهم الوكلاء الذكيين وكيف يمكنهم تنفيذ مهام حقيقية لشركتك.
+بقدر ساعدك تفهم كيف الوكلاء الذكيين ممكن يخدموا شركتك ويسهلوا أعمالك.
 
-كيف يمكنني مساعدتك اليوم؟`,
+شو بدك تعرف؟`,
         role: "assistant",
         timestamp: new Date(),
       }
@@ -112,7 +112,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "أعتذر، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى أو التواصل معنا على admin@ruyaacapital.com",
+        content: "عذراً، صار خطأ بالاتصال. جرب مرة تانية أو تواصل معنا على admin@ruyaacapital.com",
         role: "assistant",
         timestamp: new Date(),
       }
