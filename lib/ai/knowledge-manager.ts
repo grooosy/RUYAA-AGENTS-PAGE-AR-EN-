@@ -32,6 +32,19 @@ interface AnalyticsData {
 export class KnowledgeManager {
   private supabase = createClient()
 
+  // Check if knowledge base table exists
+  private async checkTableExists(): Promise<boolean> {
+    try {
+      const { error } = await this.supabase.from("knowledge_base").select("id").limit(1).single()
+
+      // If no error or just no rows, table exists
+      return !error || error.code !== "PGRST116"
+    } catch (error) {
+      console.warn("Knowledge base table may not exist:", error)
+      return false
+    }
+  }
+
   // Search knowledge base with full-text search
   async searchKnowledge(query: string, options: SearchOptions = {}): Promise<KnowledgeItem[]> {
     try {
@@ -315,14 +328,14 @@ export class KnowledgeManager {
 
       if (error) {
         console.error("Error fetching languages:", error)
-        return []
+        return ["arabic", "english"]
       }
 
       const languages = [...new Set(data?.map((item) => item.language) || [])]
       return languages.filter(Boolean)
     } catch (error) {
       console.error("Error in getLanguages:", error)
-      return []
+      return ["arabic", "english"]
     }
   }
 

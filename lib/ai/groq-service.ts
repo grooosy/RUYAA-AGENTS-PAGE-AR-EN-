@@ -1,5 +1,6 @@
-import { generateText } from "ai"
+import { streamText } from "ai"
 import { groq } from "@ai-sdk/groq"
+import { knowledgeManager } from "./knowledge-manager"
 
 interface KnowledgeItem {
   id: string
@@ -15,19 +16,25 @@ interface KnowledgeItem {
 
 interface AIResponse {
   content: string
-  responseTime: number
+  language: "arabic" | "english"
   confidence: number
   sources: string[]
-  requiresHumanFollowup: boolean
-  detectedLanguage: "ar" | "en"
   contextUnderstanding: number
+  responseTime: number
+  needsHumanFollowup: boolean
 }
 
-interface ConversationMessage {
-  role: "user" | "assistant"
+interface ChatMessage {
+  role: "user" | "assistant" | "system"
   content: string
-  timestamp: Date
-  language?: "ar" | "en"
+  timestamp?: Date
+}
+
+interface ChatContext {
+  messages: ChatMessage[]
+  language: "arabic" | "english"
+  topics: string[]
+  lastActivity: Date
 }
 
 interface GenerateOptions {
@@ -43,476 +50,320 @@ interface GenerateOptions {
   }
 }
 
-class GroqAIService {
+class GroqService {
+  private context: ChatContext = {
+    messages: [],
+    language: "arabic",
+    topics: [],
+    lastActivity: new Date(),
+  }
+
   private model = groq("llama-3.1-8b-instant")
   private readonly API_TIMEOUT = 30000 // 30 seconds
   private readonly MAX_RETRIES = 3
 
-  private systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
-
-معلومات الشركة:
-- اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
-- التخصص: حلول الوكلاء الذكيين والذكاء الاصطناعي للشركات
-- الموقع: سوريا
-
-الخدمات الرئيسية:
-1. تطوير وكلاء ذكيين مخصصين للشركات
-2. حلول الذكاء الاصطناعي للأعمال
-3. أتمتة العمليات التجارية
-4. استشارات تقنية في مجال الذكاء الاصطناعي
-5. تدريب الفرق على استخدام التقنيات الحديثة
-
-إرشادات المحادثة:
-- أجب باللغة العربية دائماً
-- كن مفيداً ومهذباً
-- ركز على خدمات الشركة
-- لا تقدم معلومات تقنية مفصلة عن الأسعار أو التفاصيل الدقيقة
-- وجه العملاء للتواصل المباشر للحصول على عروض أسعار مخصصة
-- لا تخترع معلومات غير موجودة
-- إذا لم تكن متأكداً من إجابة، اطلب من العميل التواصل مباشرة
-
-تذكر: أنت مساعد أولي، والهدف هو تقديم معلومات عامة وتوجيه العملاء للتواصل المباشر للتفاصيل المحددة.`
-
-  // Language detection using multiple methods
-  private detectLanguage(text: string): "ar" | "en" {
-    // Arabic Unicode ranges
+  // Detect language from user input
+  private detectLanguage(text: string): "arabic" | "english" {
+    // Arabic Unicode range and common Arabic words
     const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/
-    const englishPattern = /[a-zA-Z]/
-
-    const arabicMatches = (text.match(arabicPattern) || []).length
-    const englishMatches = (text.match(englishPattern) || []).length
-
-    // If more Arabic characters, it's Arabic
-    if (arabicMatches > englishMatches) return "ar"
-
-    // Check for common Arabic words
-    const arabicWords = ["في", "من", "إلى", "على", "هذا", "هذه", "التي", "الذي", "كيف", "ماذا", "أين", "متى", "لماذا"]
-    const englishWords = [
-      "the",
-      "and",
-      "or",
-      "but",
-      "in",
-      "on",
-      "at",
-      "to",
-      "for",
-      "of",
-      "with",
-      "by",
-      "how",
-      "what",
-      "where",
-      "when",
-      "why",
+    const arabicWords = [
+      "في",
+      "من",
+      "إلى",
+      "على",
+      "هذا",
+      "هذه",
+      "التي",
+      "الذي",
+      "كيف",
+      "ماذا",
+      "أين",
+      "متى",
+      "لماذا",
+      "نعم",
+      "لا",
+      "شكرا",
+      "مرحبا",
+      "السلام",
+      "وعليكم",
     ]
 
-    const lowerText = text.toLowerCase()
-    const arabicWordCount = arabicWords.filter((word) => lowerText.includes(word)).length
-    const englishWordCount = englishWords.filter((word) => lowerText.includes(word)).length
-
-    return arabicWordCount > englishWordCount ? "ar" : "en"
-  }
-
-  // Build context-aware system prompt
-  private buildSystemPrompt(
-    language: "ar" | "en",
-    knowledgeItems: KnowledgeItem[],
-    conversationHistory: ConversationMessage[],
-  ): string {
-    const contextTopics = this.extractTopicsFromHistory(conversationHistory)
-
-    if (language === "ar") {
-      return `أنت مساعد ذكي متقدم لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
-
-معلومات الشركة:
-- اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
-- التخصص: تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي للشركات
-- الموقع: سوريا
-
-الخدمات الرئيسية:
-1. تطوير وكلاء ذكيين مخصصين للشركات
-2. حلول الذكاء الاصطناعي للأعمال
-3. أتمتة العمليات التجارية
-4. استشارات تقنية في مجال الذكاء الاصطناعي
-5. تدريب الفرق على استخدام التقنيات الحديثة
-
-السياق الحالي للمحادثة:
-${contextTopics.length > 0 ? `المواضيع المطروحة سابقاً: ${contextTopics.join("، ")}` : "بداية محادثة جديدة"}
-
-قاعدة المعرفة المتاحة:
-${knowledgeItems.length > 0 ? knowledgeItems.map((item) => `- ${item.title}: ${item.content}`).join("\n") : "لا توجد معلومات محددة في قاعدة المعرفة حالياً"}
-
-إرشادات مهمة:
-- أجب باللغة العربية فقط
-- استخدم المعلومات من قاعدة المعرفة المتاحة
-- إذا لم تجد معلومات كافية، اطلب من المستخدم تحديث قاعدة المعرفة
-- حافظ على السياق من المحادثات السابقة
-- كن مفيداً ومهذباً ومهنياً
-- لا تخترع معلومات غير موجودة
-- ركز على خدمات الشركة وحلولها التقنية`
-    } else {
-      return `You are an advanced AI assistant for Ruyaa Capital, specializing in intelligent agent solutions and artificial intelligence.
-
-Company Information:
-- Company Name: Ruyaa Capital
-- Specialization: Development of intelligent agent solutions and AI for businesses
-- Location: Syria
-
-Main Services:
-1. Custom intelligent agent development for companies
-2. AI solutions for business
-3. Business process automation
-4. Technical consulting in AI field
-5. Team training on modern technologies
-
-Current Conversation Context:
-${contextTopics.length > 0 ? `Previously discussed topics: ${contextTopics.join(", ")}` : "New conversation started"}
-
-Available Knowledge Base:
-${knowledgeItems.length > 0 ? knowledgeItems.map((item) => `- ${item.title}: ${item.content}`).join("\n") : "No specific information available in knowledge base currently"}
-
-Important Guidelines:
-- Respond in English only
-- Use information from the available knowledge base
-- If insufficient information is found, ask the user to update the knowledge base
-- Maintain context from previous conversations
-- Be helpful, polite, and professional
-- Do not invent non-existent information
-- Focus on company services and technical solutions`
+    // Check for Arabic characters
+    if (arabicPattern.test(text)) {
+      return "arabic"
     }
+
+    // Check for Arabic words
+    const words = text.toLowerCase().split(/\s+/)
+    const arabicWordCount = words.filter((word) => arabicWords.includes(word)).length
+
+    if (arabicWordCount > 0) {
+      return "arabic"
+    }
+
+    return "english"
   }
 
-  // Extract topics from conversation history for context
-  private extractTopicsFromHistory(history: ConversationMessage[]): string[] {
+  // Extract topics from conversation
+  private extractTopics(messages: ChatMessage[]): string[] {
     const topics: string[] = []
-    const keywordMap = {
-      ar: {
-        خدمات: "services",
-        أسعار: "pricing",
-        تواصل: "contact",
-        وكيل: "agent",
-        ذكي: "intelligent",
-        تطوير: "development",
-        حلول: "solutions",
-        أتمتة: "automation",
-        تدريب: "training",
-        استشارة: "consultation",
-      },
-      en: {
-        services: "services",
-        pricing: "pricing",
-        contact: "contact",
-        agent: "agent",
-        intelligent: "intelligent",
-        development: "development",
-        solutions: "solutions",
-        automation: "automation",
-        training: "training",
-        consultation: "consultation",
-      },
-    }
+    const recentMessages = messages.slice(-5) // Last 5 messages
 
-    history.forEach((message) => {
-      const lang = message.language || this.detectLanguage(message.content)
-      const keywords = keywordMap[lang]
-      const content = message.content.toLowerCase()
+    recentMessages.forEach((msg) => {
+      if (msg.role === "user") {
+        const text = msg.content.toLowerCase()
 
-      Object.keys(keywords).forEach((keyword) => {
-        if (content.includes(keyword) && !topics.includes(keywords[keyword])) {
-          topics.push(keywords[keyword])
-        }
-      })
+        // Arabic topics
+        if (text.includes("خدمات") || text.includes("خدمة")) topics.push("services")
+        if (text.includes("أسعار") || text.includes("تكلفة") || text.includes("سعر")) topics.push("pricing")
+        if (text.includes("تواصل") || text.includes("اتصال") || text.includes("هاتف")) topics.push("contact")
+        if (text.includes("شركة") || text.includes("معلومات")) topics.push("company")
+
+        // English topics
+        if (text.includes("service") || text.includes("help")) topics.push("services")
+        if (text.includes("price") || text.includes("cost") || text.includes("pricing")) topics.push("pricing")
+        if (text.includes("contact") || text.includes("phone") || text.includes("email")) topics.push("contact")
+        if (text.includes("company") || text.includes("about") || text.includes("information")) topics.push("company")
+      }
     })
 
-    return topics.slice(-5) // Keep last 5 topics for context
-  }
-
-  // Test real-time connection to Groq API
-  async testConnection(): Promise<boolean> {
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for test
-
-      const response = await generateText({
-        model: this.model,
-        prompt: "Test",
-        maxTokens: 5,
-        abortSignal: controller.signal,
-      })
-
-      clearTimeout(timeoutId)
-      return !!response.text && response.text.length > 0
-    } catch (error) {
-      console.error("Groq API connection test failed:", error)
-      return false
-    }
-  }
-
-  // Generate response with real-time API call and retry logic
-  async generateResponse(
-    conversationHistory: ConversationMessage[],
-    knowledgeItems: KnowledgeItem[] = [],
-    options: GenerateOptions,
-  ): Promise<AIResponse> {
-    const startTime = Date.now()
-    let lastError: Error | null = null
-
-    // Detect language from the latest user message
-    const latestUserMessage = conversationHistory.filter((msg) => msg.role === "user").pop()
-    const detectedLanguage = latestUserMessage ? this.detectLanguage(latestUserMessage.content) : "ar"
-
-    // Filter knowledge base by detected language
-    const relevantKnowledge = knowledgeItems.filter((item) => item.language === detectedLanguage && item.isVerified)
-
-    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT)
-
-        const systemPrompt = this.buildSystemPrompt(detectedLanguage, relevantKnowledge, conversationHistory)
-        const userPrompt = this.buildUserPrompt(conversationHistory, options, detectedLanguage)
-
-        console.log(`Attempt ${attempt}: Making real-time API call to Groq...`)
-
-        const response = await generateText({
-          model: this.model,
-          system: systemPrompt,
-          prompt: userPrompt,
-          maxTokens: 800,
-          temperature: 0.3,
-          abortSignal: controller.signal,
-        })
-
-        clearTimeout(timeoutId)
-
-        if (!response.text || response.text.trim().length === 0) {
-          throw new Error("Empty response from API")
-        }
-
-        const responseTime = Date.now() - startTime
-        const content = response.text.trim()
-
-        // Calculate context understanding score
-        const contextUnderstanding = this.calculateContextUnderstanding(content, conversationHistory, relevantKnowledge)
-
-        const requiresHumanFollowup = this.analyzeHumanFollowupNeed(content, detectedLanguage)
-        const confidence = this.calculateConfidence(content, conversationHistory, relevantKnowledge)
-
-        console.log(`API call successful on attempt ${attempt}. Response time: ${responseTime}ms`)
-
-        return {
-          content,
-          responseTime,
-          confidence,
-          sources: relevantKnowledge.map((item) => item.title),
-          requiresHumanFollowup,
-          detectedLanguage,
-          contextUnderstanding,
-        }
-      } catch (error) {
-        lastError = error as Error
-        console.error(`Attempt ${attempt} failed:`, error)
-
-        if (attempt < this.MAX_RETRIES) {
-          // Exponential backoff: wait 2^attempt seconds
-          const waitTime = Math.pow(2, attempt) * 1000
-          console.log(`Waiting ${waitTime}ms before retry...`)
-          await new Promise((resolve) => setTimeout(resolve, waitTime))
-        }
-      }
-    }
-
-    // All retries failed, return fallback response
-    console.error("All API attempts failed, using fallback response")
-    throw new Error(`API call failed after ${this.MAX_RETRIES} attempts: ${lastError?.message}`)
-  }
-
-  // Build user prompt with context and language awareness
-  private buildUserPrompt(
-    conversationHistory: ConversationMessage[],
-    options: GenerateOptions,
-    language: "ar" | "en",
-  ): string {
-    const contextInfo = options.conversationContext
-
-    let prompt = language === "ar" ? "سجل المحادثة:\n" : "Conversation History:\n"
-
-    // Add conversation history with timestamps
-    conversationHistory.slice(-10).forEach((message, index) => {
-      const role =
-        message.role === "user"
-          ? language === "ar"
-            ? "المستخدم"
-            : "User"
-          : language === "ar"
-            ? "المساعد"
-            : "Assistant"
-
-      prompt += `${role}: ${message.content}\n`
-    })
-
-    // Add context information
-    if (contextInfo) {
-      if (language === "ar") {
-        prompt += `\nمعلومات السياق:\n`
-        prompt += `- مدة الجلسة: ${Math.round(contextInfo.sessionDuration / 1000)} ثانية\n`
-        prompt += `- عدد الرسائل: ${contextInfo.messageCount}\n`
-        if (contextInfo.previousTopics.length > 0) {
-          prompt += `- المواضيع السابقة: ${contextInfo.previousTopics.join("، ")}\n`
-        }
-      } else {
-        prompt += `\nContext Information:\n`
-        prompt += `- Session Duration: ${Math.round(contextInfo.sessionDuration / 1000)} seconds\n`
-        prompt += `- Message Count: ${contextInfo.messageCount}\n`
-        if (contextInfo.previousTopics.length > 0) {
-          prompt += `- Previous Topics: ${contextInfo.previousTopics.join(", ")}\n`
-        }
-      }
-    }
-
-    prompt +=
-      language === "ar"
-        ? "\nيرجى الرد بطريقة مفيدة ومهنية باللغة العربية فقط."
-        : "\nPlease respond helpfully and professionally in English only."
-
-    return prompt
+    return [...new Set(topics)]
   }
 
   // Calculate context understanding score
-  private calculateContextUnderstanding(
-    response: string,
-    conversationHistory: ConversationMessage[],
-    knowledgeItems: KnowledgeItem[],
-  ): number {
+  private calculateContextUnderstanding(userMessage: string, conversationHistory: ChatMessage[]): number {
     let score = 0.5 // Base score
 
-    // Check if response references previous conversation
-    const recentMessages = conversationHistory.slice(-3)
-    const hasContextReference = recentMessages.some((msg) =>
-      response.toLowerCase().includes(msg.content.toLowerCase().substring(0, 20)),
-    )
-    if (hasContextReference) score += 0.2
+    // Check if message relates to previous topics
+    const currentTopics = this.extractTopics([{ role: "user", content: userMessage }])
+    const previousTopics = this.extractTopics(conversationHistory)
 
-    // Check if response uses knowledge base information
-    const usesKnowledge = knowledgeItems.some(
-      (item) =>
-        response.toLowerCase().includes(item.title.toLowerCase()) ||
-        response.toLowerCase().includes(item.content.toLowerCase().substring(0, 50)),
-    )
-    if (usesKnowledge) score += 0.2
+    const topicOverlap = currentTopics.filter((topic) => previousTopics.includes(topic)).length
+    if (topicOverlap > 0) {
+      score += 0.3
+    }
 
-    // Check response length and detail
-    if (response.length > 100) score += 0.1
-    if (response.length > 300) score += 0.1
+    // Check for follow-up indicators
+    const followUpIndicators = ["أيضا", "كذلك", "بالإضافة", "وماذا عن", "also", "additionally", "what about", "and"]
+
+    const hasFollowUp = followUpIndicators.some((indicator) =>
+      userMessage.toLowerCase().includes(indicator.toLowerCase()),
+    )
+
+    if (hasFollowUp) {
+      score += 0.2
+    }
 
     return Math.min(score, 1.0)
   }
 
-  // Analyze if human followup is needed
-  private analyzeHumanFollowupNeed(content: string, language: "ar" | "en"): boolean {
-    const followupKeywords =
-      language === "ar"
-        ? [
-            "سعر",
-            "تكلفة",
-            "عرض سعر",
-            "اتفاقية",
-            "عقد",
-            "تفاصيل تقنية",
-            "تخصيص",
-            "مشروع",
-            "متطلبات خاصة",
-            "استشارة",
-            "اجتماع",
-            "موعد",
-          ]
-        : [
-            "price",
-            "cost",
-            "quote",
-            "agreement",
-            "contract",
-            "technical details",
-            "customization",
-            "project",
-            "special requirements",
-            "consultation",
-            "meeting",
-            "appointment",
-          ]
-
-    const uncertaintyPhrases =
-      language === "ar"
-        ? ["قد يكون", "ربما", "غير متأكد", "يحتاج تأكيد", "للمزيد من المعلومات"]
-        : ["might be", "maybe", "not sure", "needs confirmation", "for more information"]
-
-    const lowerContent = content.toLowerCase()
-
-    const hasFollowupKeywords = followupKeywords.some((keyword) => lowerContent.includes(keyword.toLowerCase()))
-
-    const hasUncertainty = uncertaintyPhrases.some((phrase) => lowerContent.includes(phrase.toLowerCase()))
-
-    return hasFollowupKeywords || hasUncertainty
-  }
-
-  // Calculate confidence score
-  private calculateConfidence(
-    content: string,
-    conversationHistory: ConversationMessage[],
-    knowledgeItems: KnowledgeItem[],
-  ): number {
-    let confidence = 0.7 // Base confidence
-
-    // Higher confidence if using verified knowledge
-    if (knowledgeItems.length > 0) {
-      const usesVerifiedKnowledge = knowledgeItems.some(
-        (item) =>
-          item.isVerified &&
-          (content.toLowerCase().includes(item.title.toLowerCase()) ||
-            content.toLowerCase().includes(item.content.toLowerCase().substring(0, 50))),
-      )
-      if (usesVerifiedKnowledge) confidence += 0.2
-    }
-
-    // Lower confidence for very short responses
-    if (content.length < 50) confidence -= 0.2
-
-    // Higher confidence for detailed responses
-    if (content.length > 200) confidence += 0.1
-
-    // Lower confidence if expressing uncertainty
-    const uncertaintyWords = ["قد", "ربما", "غير متأكد", "might", "maybe", "not sure"]
-    const hasUncertainty = uncertaintyWords.some((word) => content.toLowerCase().includes(word.toLowerCase()))
-    if (hasUncertainty) confidence -= 0.3
-
-    return Math.min(Math.max(confidence, 0.1), 1.0)
-  }
-
-  // Get API status for monitoring
-  async getAPIStatus(): Promise<{
-    status: "online" | "offline" | "degraded"
-    responseTime: number
-    lastChecked: Date
+  // Search knowledge base for relevant information
+  private async searchKnowledgeBase(
+    query: string,
+    language: "arabic" | "english",
+  ): Promise<{
+    content: string
+    sources: string[]
+    confidence: number
   }> {
-    const startTime = Date.now()
     try {
-      const isOnline = await this.testConnection()
+      const knowledgeItems = await knowledgeManager.searchKnowledge(query, {
+        language,
+        verified: true,
+        limit: 5,
+      })
+
+      if (knowledgeItems.length === 0) {
+        return {
+          content: "",
+          sources: [],
+          confidence: 0,
+        }
+      }
+
+      const content = knowledgeItems.map((item) => `${item.title}: ${item.content}`).join("\n\n")
+
+      const sources = knowledgeItems.map((item) => item.title)
+      const confidence = Math.min(knowledgeItems.length * 0.2, 1.0)
+
+      return { content, sources, confidence }
+    } catch (error) {
+      console.error("Error searching knowledge base:", error)
+      return {
+        content: "",
+        sources: [],
+        confidence: 0,
+      }
+    }
+  }
+
+  // Generate system prompt based on language and context
+  private generateSystemPrompt(language: "arabic" | "english", knowledgeContent: string): string {
+    const basePromptArabic = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الذكاء الاصطناعي والوكلاء الذكيين.
+
+قواعد مهمة:
+- اجب باللغة العربية فقط
+- كن مفيداً ومهذباً ومهنياً
+- استخدم المعلومات المتوفرة في قاعدة المعرفة
+- إذا لم تكن متأكداً من معلومة، اطلب من العميل التواصل مباشرة
+- لا تقدم معلومات تواصل خاطئة
+- ركز على خدمات الشركة وحلول الذكاء الاصطناعي
+
+معلومات الشركة:
+${knowledgeContent || "رؤيا كابيتال شركة متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي."}`
+
+    const basePromptEnglish = `You are an intelligent assistant for Ruyaa Capital, a company specialized in AI solutions and intelligent agents.
+
+Important rules:
+- Respond in English only
+- Be helpful, polite, and professional
+- Use information available in the knowledge base
+- If you're unsure about information, ask the client to contact directly
+- Don't provide incorrect contact information
+- Focus on company services and AI solutions
+
+Company Information:
+${knowledgeContent || "Ruyaa Capital is a company specialized in developing intelligent agent solutions and artificial intelligence."}`
+
+    return language === "arabic" ? basePromptArabic : basePromptEnglish
+  }
+
+  // Main chat method
+  async chat(userMessage: string): Promise<AIResponse> {
+    const startTime = Date.now()
+
+    try {
+      // Detect language and update context
+      const detectedLanguage = this.detectLanguage(userMessage)
+      this.context.language = detectedLanguage
+      this.context.lastActivity = new Date()
+
+      // Add user message to context
+      this.context.messages.push({
+        role: "user",
+        content: userMessage,
+        timestamp: new Date(),
+      })
+
+      // Update topics
+      this.context.topics = this.extractTopics(this.context.messages)
+
+      // Calculate context understanding
+      const contextUnderstanding = this.calculateContextUnderstanding(userMessage, this.context.messages.slice(0, -1))
+
+      // Search knowledge base
+      const knowledgeResult = await this.searchKnowledgeBase(userMessage, detectedLanguage)
+
+      // Generate system prompt
+      const systemPrompt = this.generateSystemPrompt(detectedLanguage, knowledgeResult.content)
+
+      // Prepare conversation history for AI
+      const conversationHistory = this.context.messages
+        .slice(-10) // Last 10 messages for context
+        .map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }))
+
+      // Call Groq API
+      const result = await streamText({
+        model: this.model,
+        system: systemPrompt,
+        messages: conversationHistory,
+        temperature: 0.7,
+        maxTokens: 500,
+      })
+
+      // Get the response text
+      const responseText = await result.text
+
+      // Add assistant response to context
+      this.context.messages.push({
+        role: "assistant",
+        content: responseText,
+        timestamp: new Date(),
+      })
+
+      // Calculate response metrics
+      const responseTime = Date.now() - startTime
+      const confidence = Math.min(knowledgeResult.confidence * 0.6 + contextUnderstanding * 0.4, 1.0)
+
+      // Determine if human followup is needed
+      const needsHumanFollowup =
+        confidence < 0.5 ||
+        userMessage.toLowerCase().includes("تواصل") ||
+        userMessage.toLowerCase().includes("contact") ||
+        userMessage.toLowerCase().includes("speak to human")
+
+      return {
+        content: responseText,
+        language: detectedLanguage,
+        confidence,
+        sources: knowledgeResult.sources,
+        contextUnderstanding,
+        responseTime,
+        needsHumanFollowup,
+      }
+    } catch (error) {
+      console.error("Error in chat:", error)
+
+      const errorMessage =
+        this.context.language === "arabic"
+          ? "عذراً، حدث خطأ في النظام. يرجى المحاولة مرة أخرى."
+          : "Sorry, there was a system error. Please try again."
+
+      return {
+        content: errorMessage,
+        language: this.context.language,
+        confidence: 0,
+        sources: [],
+        contextUnderstanding: 0,
+        responseTime: Date.now() - startTime,
+        needsHumanFollowup: true,
+      }
+    }
+  }
+
+  // Clear conversation context
+  clearContext(): void {
+    this.context = {
+      messages: [],
+      language: "arabic",
+      topics: [],
+      lastActivity: new Date(),
+    }
+  }
+
+  // Get current context
+  getContext(): ChatContext {
+    return { ...this.context }
+  }
+
+  // Check API health
+  async checkHealth(): Promise<{ status: "online" | "offline" | "degraded"; responseTime: number }> {
+    const startTime = Date.now()
+
+    try {
+      const result = await streamText({
+        model: this.model,
+        messages: [{ role: "user", content: "test" }],
+        maxTokens: 10,
+      })
+
+      await result.text
       const responseTime = Date.now() - startTime
 
       return {
-        status: isOnline ? (responseTime > 5000 ? "degraded" : "online") : "offline",
+        status: responseTime < 5000 ? "online" : "degraded",
         responseTime,
-        lastChecked: new Date(),
       }
     } catch (error) {
       return {
         status: "offline",
         responseTime: Date.now() - startTime,
-        lastChecked: new Date(),
       }
     }
   }
 }
 
-export const groqAI = new GroqAIService()
+export const groqService = new GroqService()

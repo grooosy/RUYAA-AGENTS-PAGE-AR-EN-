@@ -161,27 +161,27 @@ INSERT INTO knowledge_base (title, content, category, language, tags, is_verifie
     true
 ),
 (
-    'معلومات التواصل',
-    'للتواصل مع رؤيا كابيتال: الهاتف: 963940632191+، واتساب: 963940632191+. نحن متاحون للرد على استفساراتكم وتقديم استشارات مخصصة.',
-    'contact',
-    'arabic',
-    ARRAY['تواصل', 'هاتف', 'واتساب'],
+    'Ruyaa Capital Services',
+    'Ruyaa Capital is a specialized company in developing intelligent agent solutions and artificial intelligence. We provide comprehensive services including: intelligent support agents, sales automation, social media management, and customized solutions according to client needs.',
+    'services',
+    'english',
+    ARRAY['services', 'intelligent agents', 'artificial intelligence'],
     true
 ),
 (
-    'سياسة التسعير',
-    'نحن نقدم عروض أسعار مخصصة لكل عميل بناءً على حجم الشركة واحتياجاتها، نوع الخدمات المطلوبة، ومستوى التخصيص المطلوب. للحصول على عرض سعر دقيق، يرجى التواصل معنا مباشرة.',
-    'pricing',
+    'معلومات الشركة',
+    'رؤيا كابيتال هي شركة رائدة في مجال الذكاء الاصطناعي والوكلاء الذكيين. نحن نساعد الشركات على تحسين خدمة العملاء وزيادة الكفاءة من خلال حلولنا المتطورة.',
+    'company',
     'arabic',
-    ARRAY['أسعار', 'عروض', 'تسعير'],
+    ARRAY['شركة', 'معلومات', 'رؤيا كابيتال'],
     true
 ),
 (
-    'الوكيل الذكي للدعم',
-    'وكيل الدعم الذكي هو نظام متطور يستخدم الذكاء الاصطناعي لتقديم دعم عملاء على مدار الساعة. يمكنه فهم استفسارات العملاء والرد عليها بطريقة طبيعية ومفيدة، مما يحسن تجربة العملاء ويقلل من أعباء فريق الدعم.',
-    'products',
-    'arabic',
-    ARRAY['دعم', 'عملاء', 'ذكي'],
+    'Company Information',
+    'Ruyaa Capital is a leading company in the field of artificial intelligence and intelligent agents. We help companies improve customer service and increase efficiency through our advanced solutions.',
+    'company',
+    'english',
+    ARRAY['company', 'information', 'ruyaa capital'],
     true
 );
 
