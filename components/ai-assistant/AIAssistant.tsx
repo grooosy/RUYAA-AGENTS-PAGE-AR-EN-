@@ -13,17 +13,14 @@ import {
   Maximize2,
   Wifi,
   WifiOff,
-  Brain,
   Loader2,
   Trash2,
   Copy,
   AlertTriangle,
   CheckCircle,
-  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { createClient } from "@/lib/supabase/client"
@@ -159,7 +156,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 • "كيف يعمل الوكيل الذكي؟"
 • "أريد استشارة مخصصة"
 
-⚠️ **ملاحظة مهمة:** للحصول على معلومات دقيقة عن الأسعار والتفاصيل التقنية المحددة، يرجى التواصل معنا مباشرة على +963940632191
+⚠️ **ملاحظة مهمة:** للحصول على معلومات دقيقة عن الأسعار والتفاصيل التقنية المحددة، يرجى التواصل معنا مباشرة على 963940632191+
 
 كيف يمكنني مساعدتك اليوم؟`,
         role: "assistant",
@@ -301,8 +298,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
         id: (Date.now() + 1).toString(),
         content: `عذراً، حدث خطأ في الاتصال. 
 
-للحصول على المساعدة الفورية، اتصل بنا على +963940632191
-💬 واتساب: +963940632191
+للحصول على المساعدة الفورية، اتصل بنا على 963940632191+
+💬 واتساب: 963940632191+
 
 سيكون فريقنا سعيداً لمساعدتك.`,
         role: "assistant",
@@ -402,7 +399,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bot className="w-6 h-6 text-blue-400" />
+            <Bot className="w-6 h-6 text-gray-300" />
             <div
               className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
                 connectionStatus === "online"
@@ -474,7 +471,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                 >
                   {message.role === "assistant" && (
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
                         <Bot className="w-4 h-4 text-white" />
                       </div>
                     </div>
@@ -482,7 +479,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${
                       message.role === "user"
-                        ? "bg-blue-600 text-white"
+                        ? "bg-gray-700 text-white"
                         : "bg-gray-800 text-gray-100 border border-gray-700"
                     }`}
                   >
@@ -491,7 +488,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                       dangerouslySetInnerHTML={{ __html: formatMessageContent(message.content) }}
                     />
 
-                    {/* Message metadata */}
+                    {/* Message metadata - simplified without percentages */}
                     <div className="flex items-center justify-between mt-2 text-xs opacity-70">
                       <div className="flex items-center gap-2">
                         {message.status === "sending" && <Loader2 className="w-3 h-3 animate-spin" />}
@@ -502,24 +499,6 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                         <span>
                           {message.timestamp.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
                         </span>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {message.metadata?.responseTime && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Clock className="w-2 h-2 mr-1" />
-                            {message.metadata.responseTime}ms
-                          </Badge>
-                        )}
-                        {message.metadata?.confidence && (
-                          <Badge
-                            variant={message.metadata.confidence > 0.8 ? "default" : "secondary"}
-                            className="text-xs"
-                          >
-                            <Brain className="w-2 h-2 mr-1" />
-                            {Math.round(message.metadata.confidence * 100)}%
-                          </Badge>
-                        )}
                       </div>
                     </div>
 
@@ -588,7 +567,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                 className="flex gap-3 justify-start"
               >
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                 </div>
@@ -616,7 +595,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             <Button
               size="sm"
               onClick={scrollToBottom}
-              className="absolute bottom-20 right-4 rounded-full w-8 h-8 p-0 bg-blue-600 hover:bg-blue-700"
+              className="absolute bottom-20 right-4 rounded-full w-8 h-8 p-0 bg-gray-600 hover:bg-gray-700"
             >
               ↓
             </Button>
@@ -661,13 +640,13 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading || connectionStatus !== "online"}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
             <div className="text-xs text-gray-500 mt-2 text-center">
-              للحصول على معلومات دقيقة عن الأسعار، اتصل بنا على +963940632191
+              للحصول على معلومات دقيقة عن الأسعار، اتصل بنا على 963940632191+
             </div>
           </div>
         </>
