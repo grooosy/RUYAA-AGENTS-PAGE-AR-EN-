@@ -2,44 +2,19 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import {
-  X,
-  Send,
-  Bot,
-  User,
-  Minimize2,
-  Maximize2,
-  Wifi,
-  WifiOff,
-  Loader2,
-  Trash2,
-  Copy,
-  AlertTriangle,
-  CheckCircle,
-  MessageCircle,
-} from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { X, Send, User, Bot, Minimize2, Maximize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useAuth } from "@/lib/auth/auth-context"
-import { useLanguage } from "@/contexts/LanguageContext"
-import { createClient } from "@/lib/supabase/client"
-import { toast } from "sonner"
-import { groqAI } from "@/lib/ai/groq-service"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { GroqAIService } from "@/lib/ai/groq-service"
 
 interface Message {
   id: string
   content: string
-  role: "user" | "assistant"
+  sender: "user" | "assistant"
   timestamp: Date
-  status?: "sending" | "sent" | "error"
-  metadata?: {
-    responseTime?: number
-    confidence?: number
-    sources?: string[]
-    requiresHumanFollowup?: boolean
-  }
 }
 
 interface AIAssistantProps {
@@ -48,602 +23,248 @@ interface AIAssistantProps {
 }
 
 export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
-  const { user, profile } = useAuth()
-  const { t, isRTL } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<"online" | "offline" | "connecting">("online")
-  const [error, setError] = useState<string | null>(null)
-  const [isTyping, setIsTyping] = useState(false)
-  const [showScrollButton, setShowScrollButton] = useState(false)
-  const [sessionId, setSessionId] = useState<string>("")
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "testing">("testing")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
-
-  // Device detection
-  const [deviceInfo, setDeviceInfo] = useState({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: false,
-    screenWidth: 0,
-    screenHeight: 0,
-    touchSupported: false,
-  })
+  const groqService = new GroqAIService()
 
   useEffect(() => {
-    const detectDevice = () => {
-      const userAgent = navigator.userAgent.toLowerCase()
-      const isMobile =
-        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || window.innerWidth <= 768
-      const isTablet =
-        /ipad|android(?!.*mobile)/i.test(userAgent) || (window.innerWidth > 768 && window.innerWidth <= 1024)
-      const touchSupported = "ontouchstart" in window || navigator.maxTouchPoints > 0
-
-      setDeviceInfo({
-        isMobile,
-        isTablet,
-        isDesktop: !isMobile && !isTablet,
-        screenWidth: window.innerWidth,
-        screenHeight: window.innerHeight,
-        touchSupported,
-      })
-    }
-
-    detectDevice()
-    window.addEventListener("resize", detectDevice)
-    return () => window.removeEventListener("resize", detectDevice)
-  }, [])
-
-  // Connection status monitoring
-  useEffect(() => {
-    const handleOnline = () => setConnectionStatus("online")
-    const handleOffline = () => setConnectionStatus("offline")
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
-
-    setConnectionStatus(navigator.onLine ? "online" : "offline")
-
-    // Test AI connection on mount
-    const testAIConnection = async () => {
-      setConnectionStatus("connecting")
-      try {
-        const isConnected = await groqAI.testConnection()
-        setConnectionStatus(isConnected ? "online" : "offline")
-      } catch (error) {
-        console.error("AI connection test failed:", error)
-        setConnectionStatus("offline")
+    if (isOpen) {
+      testAIConnection()
+      if (messages.length === 0) {
+        addWelcomeMessage()
       }
-    }
-
-    testAIConnection()
-
-    return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
-    }
-  }, [])
-
-  // Initialize session
-  useEffect(() => {
-    if (isOpen && !sessionId) {
-      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      setSessionId(newSessionId)
-    }
-  }, [isOpen, sessionId])
-
-  // Scroll detection for scroll-to-bottom button
-  useEffect(() => {
-    const container = messagesContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-      setShowScrollButton(!isNearBottom && messages.length > 3)
-    }
-
-    container.addEventListener("scroll", handleScroll)
-    return () => container.removeEventListener("scroll", handleScroll)
-  }, [messages.length])
-
-  // Initialize chat with welcome message
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      const welcomeMessage: Message = {
-        id: Date.now().toString(),
-        content: `مرحباً! أنا مساعدك الذكي من رؤيا كابيتال.
-
-أستطيع مساعدتك في:
-• معرفة خدمات الوكلاء الذكيين
-• شرح كيفية عمل حلولنا التقنية
-• توجيهك للحصول على استشارة مخصصة
-• الإجابة على أسئلتك العامة
-
-للحصول على معلومات دقيقة ومفصلة، يرجى التواصل معنا مباشرة على:
-📞 (+963940632191)
-
-كيف يمكنني مساعدتك اليوم؟`,
-        role: "assistant",
-        timestamp: new Date(),
-        status: "sent",
-        metadata: {
-          confidence: 1.0,
-          sources: ["welcome"],
-          requiresHumanFollowup: false,
-        },
-      }
-
-      setMessages([welcomeMessage])
     }
   }, [isOpen])
 
-  // Auto-scroll to bottom
-  const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [])
-
   useEffect(() => {
     scrollToBottom()
-  }, [messages, scrollToBottom])
+  }, [messages])
 
-  // Focus input when opened on desktop
-  useEffect(() => {
-    if (isOpen && !isMinimized && !deviceInfo.isMobile && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 300)
+  const testAIConnection = async () => {
+    try {
+      setConnectionStatus("testing")
+      await groqService.testConnection()
+      setConnectionStatus("connected")
+    } catch (error) {
+      console.error("AI connection test failed:", error)
+      setConnectionStatus("disconnected")
     }
-  }, [isOpen, isMinimized, deviceInfo.isMobile])
+  }
 
-  // Send message with AI processing
-  const handleSendMessage = useCallback(async () => {
+  const addWelcomeMessage = () => {
+    const welcomeMessage: Message = {
+      id: Date.now().toString(),
+      content:
+        "مرحباً بك في رؤيا كابيتال! أنا مساعدك الذكي وأنا هنا لمساعدتك في جميع استفساراتك حول خدماتنا المالية والاستثمارية. كيف يمكنني مساعدتك اليوم؟",
+      sender: "assistant",
+      timestamp: new Date(),
+    }
+    setMessages([welcomeMessage])
+  }
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
-
-    const messageContent = inputValue.trim()
-    setInputValue("")
-    setError(null)
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: messageContent,
-      role: "user",
+      content: inputValue.trim(),
+      sender: "user",
       timestamp: new Date(),
-      status: "sending",
     }
 
     setMessages((prev) => [...prev, userMessage])
+    setInputValue("")
     setIsLoading(true)
-    setIsTyping(true)
 
     try {
-      // Update message status to sent
-      setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "sent" } : msg)))
-
-      // Prepare conversation history for AI
-      const conversationHistory = messages.map((msg) => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-      }))
-
-      // Add current user message
-      conversationHistory.push({
-        role: "user",
-        content: messageContent,
-      })
-
-      // Generate AI response
-      const aiResponse = await groqAI.generateResponse(conversationHistory, {
-        userId: user?.id,
-        sessionId,
-        deviceInfo,
-        timestamp: new Date().toISOString(),
-        realTimeData: {
-          currentTime: new Date().toLocaleString("ar-SA"),
-          userLocation: "Syria",
-          sessionDuration: Date.now() - Number.parseInt(sessionId.split("_")[1]),
-          messageCount: messages.length + 1,
-        },
-      })
+      const response = await groqService.generateResponse(inputValue.trim())
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: aiResponse.content,
-        role: "assistant",
+        content: response,
+        sender: "assistant",
         timestamp: new Date(),
-        status: "sent",
-        metadata: {
-          responseTime: aiResponse.responseTime,
-          confidence: aiResponse.confidence,
-          sources: aiResponse.sources,
-          requiresHumanFollowup: aiResponse.requiresHumanFollowup,
-        },
       }
 
       setMessages((prev) => [...prev, assistantMessage])
-
-      // Log interaction to database
-      if (user && profile) {
-        try {
-          await supabase.from("agent_interactions").insert({
-            user_id: user.id,
-            session_id: sessionId,
-            message_type: "chat",
-            user_message: messageContent,
-            ai_response: aiResponse.content,
-            response_time: aiResponse.responseTime,
-            confidence_score: aiResponse.confidence,
-            metadata: {
-              sources: aiResponse.sources,
-              requiresHumanFollowup: aiResponse.requiresHumanFollowup,
-              deviceInfo,
-            },
-          })
-        } catch (dbError) {
-          console.error("Error logging interaction:", dbError)
-        }
-      }
-
-      // Show notification if human followup is recommended
-      if (aiResponse.requiresHumanFollowup) {
-        toast.info("للحصول على معلومات أكثر دقة، يُنصح بالتواصل المباشر", {
-          action: {
-            label: "اتصل الآن",
-            onClick: () => window.open("tel:+963940632191"),
-          },
-        })
-      }
     } catch (error) {
-      console.error("Error sending message:", error)
-      setError("حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.")
+      console.error("Error generating response:", error)
 
-      // Update user message status to error
-      setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "error" } : msg)))
-
-      // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `عذراً، حدث خطأ في الاتصال.
-
-للحصول على المساعدة الفورية، اتصل بنا على:
-📞 (+963940632191)
-
-سيكون فريقنا سعيداً لمساعدتك.`,
-        role: "assistant",
+        content: "أعتذر، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى أو التواصل معنا مباشرة على الرقم: +966 11 234 5678",
+        sender: "assistant",
         timestamp: new Date(),
-        status: "sent",
-        metadata: {
-          confidence: 1.0,
-          sources: ["error_fallback"],
-          requiresHumanFollowup: true,
-        },
       }
 
       setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
-      setIsTyping(false)
     }
-  }, [inputValue, isLoading, messages, user, profile, sessionId, deviceInfo, supabase])
+  }
 
-  // Handle keyboard shortcuts
-  const handleKeyPress = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        handleSendMessage()
-      }
-    },
-    [handleSendMessage],
-  )
-
-  // Clear conversation
-  const handleClearConversation = useCallback(() => {
-    if (confirm("هل أنت متأكد من حذف المحادثة؟")) {
-      setMessages([])
-      setError(null)
-      // Re-add welcome message
-      setTimeout(() => {
-        const welcomeMessage: Message = {
-          id: Date.now().toString(),
-          content: `مرحباً مجدداً! كيف يمكنني مساعدتك؟`,
-          role: "assistant",
-          timestamp: new Date(),
-          status: "sent",
-          metadata: {
-            confidence: 1.0,
-            sources: ["welcome"],
-          },
-        }
-        setMessages([welcomeMessage])
-      }, 100)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
-  }, [])
-
-  // Copy message content
-  const handleCopyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
-      toast.success("تم نسخ الرسالة")
-    })
-  }, [])
-
-  // Retry failed message
-  const handleRetryMessage = useCallback(
-    (messageId: string) => {
-      const message = messages.find((msg) => msg.id === messageId)
-      if (message && message.role === "user") {
-        setInputValue(message.content)
-        // Remove the failed message and any subsequent messages
-        const messageIndex = messages.findIndex((msg) => msg.id === messageId)
-        setMessages((prev) => prev.slice(0, messageIndex))
-      }
-    },
-    [messages],
-  )
-
-  // Format message content
-  const formatMessageContent = (content: string) => {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      .replace(/`(.*?)`/g, '<code class="bg-gray-800 text-white px-2 py-1 rounded text-sm">$1</code>')
-      .replace(/\n/g, "<br>")
   }
 
   if (!isOpen) return null
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 20 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-black rounded-3xl shadow-2xl ${
-        isMinimized
-          ? "w-80 h-16 bottom-4"
-          : deviceInfo.isMobile
-            ? "w-[95vw] h-[90vh] bottom-2"
-            : "w-96 h-[600px] bottom-4"
-      } transition-all duration-300 overflow-hidden border border-gray-800`}
-      style={{
-        maxHeight: deviceInfo.isMobile ? "calc(100vh - 20px)" : "600px",
-        top: deviceInfo.isMobile && !isMinimized ? "5px" : "auto",
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)",
-      }}
-    >
-      {/* Header - FIXED HEIGHT AND PROPER SPACING */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800 bg-black min-h-[72px]">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="relative flex-shrink-0">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-black" />
+    <div className="fixed bottom-4 right-4 z-50">
+      <div
+        className={`bg-black border-2 border-white rounded-3xl shadow-2xl transition-all duration-300 ${
+          isMinimized ? "w-80 h-16" : "w-96 h-[600px]"
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between min-h-[72px] px-4 py-4 border-b-2 border-white">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="relative">
+              <Avatar className="w-12 h-12 border-2 border-white">
+                <AvatarImage src="/images/ruyaa-ai-logo.png" alt="Ruyaa AI" />
+                <AvatarFallback className="bg-white text-black font-bold">AI</AvatarFallback>
+              </Avatar>
+              <div
+                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-black ${
+                  connectionStatus === "connected"
+                    ? "bg-white"
+                    : connectionStatus === "testing"
+                      ? "bg-gray-400"
+                      : "bg-gray-600"
+                }`}
+              />
             </div>
-            <div
-              className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-black ${
-                connectionStatus === "online"
-                  ? "bg-white"
-                  : connectionStatus === "connecting"
-                    ? "bg-gray-400"
-                    : "bg-gray-600"
-              }`}
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-white font-semibold text-lg leading-tight">مساعد رؤيا الذكي</h3>
-            <div className="flex items-center gap-2 text-sm text-gray-300 mt-1">
-              {connectionStatus === "online" ? (
-                <>
-                  <Wifi className="w-4 h-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">متصل ومتاح</span>
-                </>
-              ) : connectionStatus === "connecting" ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                  <span className="whitespace-nowrap">جاري الاتصال...</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-4 h-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">غير متصل</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
-          >
-            {isMinimized ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onToggle}
-            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-
-      {!isMinimized && (
-        <>
-          {/* Messages */}
-          <div
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 bg-black"
-            style={{ height: deviceInfo.isMobile ? "calc(90vh - 212px)" : "calc(600px - 212px)" }}
-          >
-            <AnimatePresence>
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  {message.role === "assistant" && (
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                        <Bot className="w-4 h-4 text-black" />
-                      </div>
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl p-4 ${
-                      message.role === "user" ? "bg-white text-black" : "bg-gray-900 text-white border border-gray-700"
-                    }`}
-                  >
-                    <div
-                      className="text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: formatMessageContent(message.content) }}
-                    />
-
-                    {/* Message metadata */}
-                    <div className="flex items-center justify-between mt-3 text-xs opacity-60">
-                      <div className="flex items-center gap-2">
-                        {message.status === "sending" && <Loader2 className="w-3 h-3 animate-spin" />}
-                        {message.status === "error" && <AlertTriangle className="w-3 h-3" />}
-                        {message.status === "sent" && message.role === "assistant" && (
-                          <CheckCircle className="w-3 h-3" />
-                        )}
-                        <span>
-                          {message.timestamp.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Message actions */}
-                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-700">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleCopyMessage(message.content)}
-                        className="text-xs text-gray-400 hover:text-white p-1 h-auto rounded-full"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      {message.status === "error" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRetryMessage(message.id)}
-                          className="text-xs text-gray-400 hover:text-white p-1 h-auto rounded-full"
-                        >
-                          إعادة المحاولة
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {message.role === "user" && (
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {/* Typing indicator */}
-            {isTyping && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3 justify-start"
-              >
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-black" />
-                  </div>
-                </div>
-                <div className="bg-gray-900 rounded-2xl p-4 border border-gray-700">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Scroll to bottom button */}
-          {showScrollButton && (
-            <Button
-              size="sm"
-              onClick={scrollToBottom}
-              className="absolute bottom-20 right-4 rounded-full w-10 h-10 p-0 bg-white hover:bg-gray-200 text-black shadow-lg"
-            >
-              ↓
-            </Button>
-          )}
-
-          {/* Error display */}
-          {error && (
-            <div className="px-4 py-3 bg-gray-900 border-t border-gray-800">
-              <div className="flex items-center gap-2 text-white text-sm">
-                <AlertTriangle className="w-4 h-4" />
-                {error}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-bold text-lg whitespace-nowrap">مساعد رؤيا الذكي</h3>
+              <div className="flex items-center gap-2 mt-1">
+                <div
+                  className={`w-2 h-2 rounded-full ${
+                    connectionStatus === "connected"
+                      ? "bg-white"
+                      : connectionStatus === "testing"
+                        ? "bg-gray-400"
+                        : "bg-gray-600"
+                  }`}
+                />
+                <span className="text-white text-sm whitespace-nowrap">
+                  {connectionStatus === "connected"
+                    ? "متصل ومتاح"
+                    : connectionStatus === "testing"
+                      ? "جاري الاتصال..."
+                      : "غير متصل"}
+                </span>
               </div>
             </div>
-          )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
+            >
+              {isMinimized ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggle}
+              className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
 
-          {/* Input - FIXED HEIGHT */}
-          <div className="p-4 border-t border-gray-800 bg-black min-h-[140px]">
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
+        {!isMinimized && (
+          <>
+            {/* Messages */}
+            <ScrollArea className="h-[400px] p-4">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                        message.sender === "user"
+                          ? "bg-white text-black border-2 border-gray-200"
+                          : "bg-gray-800 text-white border-2 border-gray-600"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {message.sender === "assistant" && <Bot className="w-4 h-4 mt-1 flex-shrink-0" />}
+                        {message.sender === "user" && <User className="w-4 h-4 mt-1 flex-shrink-0" />}
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-800 text-white border-2 border-gray-600 rounded-2xl px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4" />
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                          <div
+                            className="w-2 h-2 bg-white rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          />
+                          <div
+                            className="w-2 h-2 bg-white rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Input */}
+            <div className="min-h-[140px] p-4 border-t-2 border-white">
+              <div className="flex gap-2">
                 <Input
-                  ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={connectionStatus === "online" ? "اكتب رسالتك..." : "غير متصل..."}
-                  disabled={isLoading || connectionStatus !== "online"}
-                  className="bg-gray-900 border border-gray-700 text-white placeholder-gray-400 pr-12 pl-4 py-3 rounded-full focus:ring-2 focus:ring-white focus:border-white h-12"
-                  dir="rtl"
+                  placeholder="اكتب رسالتك هنا..."
+                  className="flex-1 bg-gray-900 border-2 border-gray-600 text-white placeholder-gray-400 rounded-full px-4 py-3 focus:border-white focus:ring-0"
+                  disabled={isLoading}
                 />
-                {messages.length > 1 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleClearConversation}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white p-1 h-auto rounded-full"
-                    title="مسح المحادثة"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  className="w-12 h-12 bg-white text-black hover:bg-gray-200 rounded-full flex-shrink-0 disabled:opacity-50"
+                >
+                  <Send className="w-5 h-5" />
+                </Button>
               </div>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading || connectionStatus !== "online"}
-                className="bg-white hover:bg-gray-200 disabled:opacity-50 text-black rounded-full w-12 h-12 p-0 flex items-center justify-center flex-shrink-0"
-              >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              </Button>
+              <div className="mt-3 text-center">
+                <p className="text-gray-400 text-xs">
+                  للمساعدة الفورية، اتصل بنا على:
+                  <span className="text-white font-medium"> +966 11 234 5678</span>
+                </p>
+              </div>
             </div>
-            <div className="text-xs text-gray-400 mt-3 text-center">
-              للحصول على معلومات دقيقة، اتصل بنا على (+963940632191)
-            </div>
-          </div>
-        </>
-      )}
-    </motion.div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
