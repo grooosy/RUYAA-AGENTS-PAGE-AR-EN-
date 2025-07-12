@@ -1,203 +1,146 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Bot, MessageSquare, Zap, Activity } from "lucide-react"
-import Image from "next/image"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { Bot, Zap, Shield, Users, BarChart3, Clock } from "lucide-react"
+
+const features = [
+  {
+    icon: Bot,
+    titleAr: "وكلاء ذكيون متطورون",
+    titleEn: "Advanced AI Agents",
+    descriptionAr: "وكلاء ذكيون مدربون على أحدث تقنيات الذكاء الاصطناعي لخدمة عملائك بكفاءة عالية",
+    descriptionEn:
+      "AI agents trained on the latest artificial intelligence technologies to serve your customers efficiently",
+  },
+  {
+    icon: Zap,
+    titleAr: "استجابة فورية",
+    titleEn: "Instant Response",
+    descriptionAr: "ردود فورية على استفسارات العملاء على مدار الساعة دون انقطاع",
+    descriptionEn: "Instant responses to customer inquiries 24/7 without interruption",
+  },
+  {
+    icon: Shield,
+    titleAr: "أمان وخصوصية",
+    titleEn: "Security & Privacy",
+    descriptionAr: "حماية كاملة لبيانات عملائك مع أعلى معايير الأمان والخصوصية",
+    descriptionEn: "Complete protection of your customer data with the highest security and privacy standards",
+  },
+  {
+    icon: Users,
+    titleAr: "تجربة مخصصة",
+    titleEn: "Personalized Experience",
+    descriptionAr: "تجربة مخصصة لكل عميل بناءً على تفضيلاته وتاريخ تفاعلاته",
+    descriptionEn: "Personalized experience for each customer based on their preferences and interaction history",
+  },
+  {
+    icon: BarChart3,
+    titleAr: "تحليلات ذكية",
+    titleEn: "Smart Analytics",
+    descriptionAr: "تقارير وتحليلات مفصلة لفهم سلوك العملاء وتحسين الخدمة",
+    descriptionEn: "Detailed reports and analytics to understand customer behavior and improve service",
+  },
+  {
+    icon: Clock,
+    titleAr: "توفير الوقت",
+    titleEn: "Time Saving",
+    descriptionAr: "توفير الوقت والجهد من خلال أتمتة المهام المتكررة وتحسين الكفاءة",
+    descriptionEn: "Save time and effort by automating repetitive tasks and improving efficiency",
+  },
+]
 
 export default function Features() {
-  const { t, language, isRTL } = useLanguage()
-  const cardRef = useRef<HTMLDivElement>(null)
-  const floatingAnimationRef = useRef<number>()
-
-  useEffect(() => {
-    const card = cardRef.current
-    if (!card) return
-
-    // Check if device is mobile or has reduced motion preference
-    const isMobile = window.innerWidth <= 768
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-
-    if (isMobile || prefersReducedMotion) {
-      // Simple mobile-friendly animations
-      card.style.animation = "subtleFloat 4s ease-in-out infinite"
-      return
-    }
-
-    let isHovering = false
-    let animationId: number
-    let currentRotateX = 0
-    let currentRotateY = 0
-    let currentScale = 1
-    let targetRotateX = 0
-    let targetRotateY = 0
-    let targetScale = 1
-    let floatingOffset = 0
-
-    // Floating animation
-    const startFloating = () => {
-      const animate = (timestamp: number) => {
-        if (!isHovering) {
-          floatingOffset = Math.sin(timestamp * 0.001) * 3
-          card.style.transform = `translateY(${floatingOffset}px) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale(${currentScale})`
-        }
-        floatingAnimationRef.current = requestAnimationFrame(animate)
-      }
-      floatingAnimationRef.current = requestAnimationFrame(animate)
-    }
-
-    // 3D Tilt Effect
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!card) return
-
-      const rect = card.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-
-      const mouseX = e.clientX - centerX
-      const mouseY = e.clientY - centerY
-
-      const rotateX = (mouseY / rect.height) * -15
-      const rotateY = (mouseX / rect.width) * 15
-
-      targetRotateX = Math.max(-15, Math.min(15, rotateX))
-      targetRotateY = Math.max(-15, Math.min(15, rotateY))
-      targetScale = 1.05
-    }
-
-    const handleMouseEnter = () => {
-      isHovering = true
-      card.style.transition = "transform 0.1s ease-out"
-    }
-
-    const handleMouseLeave = () => {
-      isHovering = false
-      targetRotateX = 0
-      targetRotateY = 0
-      targetScale = 1
-      card.style.transition = "transform 0.5s ease-out"
-    }
-
-    // Smooth animation loop
-    const animate = () => {
-      // Lerp for smooth transitions
-      currentRotateX += (targetRotateX - currentRotateX) * 0.1
-      currentRotateY += (targetRotateY - currentRotateY) * 0.1
-      currentScale += (targetScale - currentScale) * 0.1
-
-      if (isHovering) {
-        card.style.transform = `translateY(${floatingOffset}px) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale(${currentScale})`
-      }
-
-      animationId = requestAnimationFrame(animate)
-    }
-
-    // Event listeners
-    card.addEventListener("mousemove", handleMouseMove)
-    card.addEventListener("mouseenter", handleMouseEnter)
-    card.addEventListener("mouseleave", handleMouseLeave)
-
-    // Start animations
-    startFloating()
-    animate()
-
-    return () => {
-      card.removeEventListener("mousemove", handleMouseMove)
-      card.removeEventListener("mouseenter", handleMouseEnter)
-      card.removeEventListener("mouseleave", handleMouseLeave)
-      if (animationId) cancelAnimationFrame(animationId)
-      if (floatingAnimationRef.current) cancelAnimationFrame(floatingAnimationRef.current)
-    }
-  }, [])
+  const { language, isRTL } = useLanguage()
 
   return (
-    <section id="ai-assistant" className="py-20 bg-black relative overflow-hidden">
+    <section className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900/10 via-transparent to-gray-800/10" />
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+      </div>
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className={`text-4xl md:text-5xl font-bold text-white mb-6 ${isRTL ? "font-arabic" : ""}`}>
-            {t("features.title")}
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 text-shadow-lg">
+            {language === "ar" ? "مميزات منصتنا" : "Platform Features"}
           </h2>
-          <p className={`text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed ${isRTL ? "font-arabic" : ""}`}>
-            {t("features.subtitle")}
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            {language === "ar"
+              ? "اكتشف كيف يمكن لوكلائنا الذكيين تحويل تجربة خدمة العملاء في شركتك"
+              : "Discover how our AI agents can transform your company's customer service experience"}
           </p>
         </motion.div>
 
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            ref={cardRef}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative bg-black/90 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl overflow-hidden group floating-card"
-            style={{
-              transformStyle: "preserve-3d",
-              willChange: "transform",
-            }}
-          >
-            <div className={`grid lg:grid-cols-2 gap-0 ${isRTL ? "lg:grid-cols-2" : ""}`}>
-              {/* Image Side */}
-              <div className={`${isRTL ? "lg:order-2" : "order-1"} relative`}>
-                <div className="relative h-full min-h-[400px] lg:min-h-[500px]">
-                  <Image
-                    src="/images/ruyaa-agent-interface.png"
-                    alt={t("features.aiAssistant.imageAlt")}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/60" />
-                </div>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              className="group floating-card"
+            >
+              <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-8 h-full transition-all duration-300 hover:bg-white/15 hover:border-white/30 hover:shadow-2xl hover:shadow-cyan-500/20">
+                {/* Floating glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 floating-glow" />
 
-              {/* Content Side */}
-              <div className={`${isRTL ? "lg:order-1" : "order-2"} p-8 lg:p-12 flex flex-col justify-center`}>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
-                    <Bot className="w-8 h-8 text-gray-300" />
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <feature.icon className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className={`text-2xl lg:text-3xl font-bold text-white ${isRTL ? "font-arabic" : ""}`}>
-                    {t("features.aiAssistant.title")}
+
+                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-cyan-300 transition-colors duration-300">
+                    {language === "ar" ? feature.titleAr : feature.titleEn}
                   </h3>
+
+                  <p className="text-gray-300 leading-relaxed group-hover:text-gray-200 transition-colors duration-300">
+                    {language === "ar" ? feature.descriptionAr : feature.descriptionEn}
+                  </p>
                 </div>
 
-                <p className={`text-gray-300 text-lg leading-relaxed mb-8 ${isRTL ? "font-arabic text-right" : ""}`}>
-                  {t("features.aiAssistant.description")}
-                </p>
-
-                {/* Feature List */}
-                <div className="space-y-4">
-                  {[
-                    { icon: MessageSquare, text: t("features.aiAssistant.feature1") },
-                    { icon: Zap, text: t("features.aiAssistant.feature2") },
-                    { icon: Activity, text: t("features.aiAssistant.feature3") },
-                  ].map((feature, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
-                    >
-                      <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                        <feature.icon className="w-5 h-5 text-gray-300" />
-                      </div>
-                      <span className={`text-gray-300 ${isRTL ? "font-arabic" : ""}`}>{feature.text}</span>
-                    </motion.div>
-                  ))}
-                </div>
+                {/* Hover border effect */}
+                <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-cyan-500/50 transition-colors duration-300" />
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          ))}
         </div>
+
+        {/* Call to Action */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          viewport={{ once: true }}
+          className="text-center mt-16"
+        >
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-8 max-w-2xl mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-4">
+              {language === "ar" ? "جاهز للبدء؟" : "Ready to Get Started?"}
+            </h3>
+            <p className="text-gray-300 mb-6">
+              {language === "ar"
+                ? "ابدأ رحلتك مع الوكلاء الذكيين اليوم واكتشف الفرق"
+                : "Start your journey with AI agents today and discover the difference"}
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 btn-3d"
+              onClick={() => window.open("tel:+963940632191")}
+            >
+              {language === "ar" ? "تواصل معنا الآن" : "Contact Us Now"}
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
     </section>
   )

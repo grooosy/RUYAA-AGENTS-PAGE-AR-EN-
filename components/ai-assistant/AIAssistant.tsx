@@ -40,6 +40,7 @@ interface Message {
     intent?: string
     requiresHumanFollowup?: boolean
     suggestedActions?: string[]
+    contextualSuggestions?: string[]
   }
 }
 
@@ -60,6 +61,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [showScrollButton, setShowScrollButton] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
+  const [conversationContext, setConversationContext] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -99,7 +101,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     return () => window.removeEventListener("resize", detectDevice)
   }, [])
 
-  // Connection status monitoring
+  // Connection status monitoring with real-time updates
   useEffect(() => {
     const handleOnline = () => setConnectionStatus("online")
     const handleOffline = () => setConnectionStatus("offline")
@@ -108,6 +110,20 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     window.addEventListener("offline", handleOffline)
 
     setConnectionStatus(navigator.onLine ? "online" : "offline")
+
+    // Test AI connection on mount
+    const testAIConnection = async () => {
+      setConnectionStatus("connecting")
+      try {
+        const isConnected = await groqAI.testConnection()
+        setConnectionStatus(isConnected ? "online" : "offline")
+      } catch (error) {
+        console.error("AI connection test failed:", error)
+        setConnectionStatus("offline")
+      }
+    }
+
+    testAIConnection()
 
     return () => {
       window.removeEventListener("online", handleOnline)
@@ -138,7 +154,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     return () => container.removeEventListener("scroll", handleScroll)
   }, [messages.length])
 
-  // Initialize chat with welcome message
+  // Initialize chat with welcome message and contextual suggestions
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
@@ -151,11 +167,6 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 • توجيهك للحصول على استشارة مخصصة
 • الإجابة على أسئلتك العامة
 
-💡 **جرب أن تسأل:**
-• "ما هي خدماتكم؟"
-• "كيف يعمل الوكيل الذكي؟"
-• "أريد استشارة مخصصة"
-
 ⚠️ **ملاحظة مهمة:** للحصول على معلومات دقيقة عن الأسعار والتفاصيل التقنية المحددة، يرجى التواصل معنا مباشرة على (+963940632191)
 
 كيف يمكنني مساعدتك اليوم؟`,
@@ -166,6 +177,12 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
           confidence: 1.0,
           sources: ["welcome"],
           requiresHumanFollowup: false,
+          contextualSuggestions: [
+            "ما هي خدماتكم؟",
+            "كيف يعمل الوكيل الذكي؟",
+            "أريد استشارة مخصصة",
+            "ما هي أسعار خدماتكم؟",
+          ],
         },
       }
 
@@ -193,13 +210,189 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     }
   }, [isOpen, isMinimized, deviceInfo.isMobile])
 
-  // Send message with enhanced AI processing
+  // Generate contextual suggestions based on conversation
+  const generateContextualSuggestions = useCallback((lastMessage: string, conversationHistory: string[]): string[] => {
+    const suggestions: string[] = []
+    const lastMessageLower = lastMessage.toLowerCase()
+
+    // Context-aware suggestions based on conversation flow
+    if (lastMessageLower.includes("خدمات") || lastMessageLower.includes("services")) {
+      suggestions.push("كيف يمكنني البدء؟", "ما هي التكلفة؟", "هل لديكم عروض تجريبية؟")
+    } else if (lastMessageLower.includes("وكيل ذكي") || lastMessageLower.includes("ai agent")) {
+      suggestions.push("كيف يتم التدريب؟", "ما هي المميزات؟", "هل يدعم اللغة العربية؟")
+    } else if (
+      lastMessageLower.includes("سعر") ||
+      lastMessageLower.includes("تكلفة") ||
+      lastMessageLower.includes("price")
+    ) {
+      suggestions.push("أريد عرض سعر مخصص", "ما هي طرق الدفع؟", "هل توجد خصومات؟")
+    } else if (lastMessageLower.includes("تدريب") || lastMessageLower.includes("training")) {
+      suggestions.push("كم يستغرق التدريب؟", "هل تقدمون الدعم؟", "ما هي المتطلبات؟")
+    } else if (lastMessageLower.includes("دعم") || lastMessageLower.includes("support")) {
+      suggestions.push("ما هي ساعات الدعم؟", "كيف أتواصل معكم؟", "هل الدعم مجاني؟")
+    } else {
+      // Default contextual suggestions
+      suggestions.push("أخبرني المزيد", "كيف أبدأ؟", "أريد التحدث مع مختص")
+    }
+
+    // Avoid repetitive suggestions from conversation history
+    const uniqueSuggestions = suggestions.filter(
+      (suggestion) => !conversationHistory.some((msg) => msg.includes(suggestion)),
+    )
+
+    return uniqueSuggestions.slice(0, 3)
+  }, [])
+
+  // Handle suggested question click - direct sending
+  const handleSuggestedQuestionClick = useCallback(
+    async (question: string) => {
+      if (isLoading) return
+
+      // Add to conversation context to avoid repetition
+      setConversationContext((prev) => [...prev, question])
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: question,
+        role: "user",
+        timestamp: new Date(),
+        status: "sending",
+      }
+
+      setMessages((prev) => [...prev, userMessage])
+      setIsLoading(true)
+      setIsTyping(true)
+
+      try {
+        // Update message status to sent
+        setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "sent" } : msg)))
+
+        // Prepare conversation history for AI with real-time context
+        const conversationHistory = messages.map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }))
+
+        // Add current user message
+        conversationHistory.push({
+          role: "user",
+          content: question,
+        })
+
+        // Generate AI response with real-time data integration
+        const aiResponse = await groqAI.generateResponse(conversationHistory, {
+          userId: user?.id,
+          sessionId,
+          deviceInfo,
+          conversationContext,
+          timestamp: new Date().toISOString(),
+          realTimeData: {
+            currentTime: new Date().toLocaleString("ar-SA"),
+            userLocation: "Syria", // Can be enhanced with actual geolocation
+            sessionDuration: Date.now() - Number.parseInt(sessionId.split("_")[1]),
+          },
+        })
+
+        // Generate contextual suggestions for next interaction
+        const contextualSuggestions = generateContextualSuggestions(aiResponse.content, conversationContext)
+
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: aiResponse.content,
+          role: "assistant",
+          timestamp: new Date(),
+          status: "sent",
+          metadata: {
+            responseTime: aiResponse.responseTime,
+            confidence: aiResponse.confidence,
+            sources: aiResponse.sources,
+            requiresHumanFollowup: aiResponse.requiresHumanFollowup,
+            suggestedActions: aiResponse.suggestedActions,
+            contextualSuggestions,
+          },
+        }
+
+        setMessages((prev) => [...prev, assistantMessage])
+
+        // Log interaction to database if user is authenticated
+        if (user && profile) {
+          try {
+            await supabase.from("agent_interactions").insert({
+              user_id: user.id,
+              session_id: sessionId,
+              message_type: "suggested_question",
+              user_message: question,
+              ai_response: aiResponse.content,
+              response_time: aiResponse.responseTime,
+              confidence_score: aiResponse.confidence,
+              metadata: {
+                sources: aiResponse.sources,
+                intent: "suggested_question",
+                requiresHumanFollowup: aiResponse.requiresHumanFollowup,
+                deviceInfo,
+                contextualSuggestions,
+              },
+            })
+          } catch (dbError) {
+            console.error("Error logging interaction:", dbError)
+          }
+        }
+
+        // Show notification if human followup is recommended
+        if (aiResponse.requiresHumanFollowup) {
+          toast.info("يُنصح بالتواصل المباشر للحصول على معلومات أكثر دقة", {
+            action: {
+              label: "اتصل الآن",
+              onClick: () => window.open("tel:+963940632191"),
+            },
+          })
+        }
+      } catch (error) {
+        console.error("Error sending suggested question:", error)
+        setError("حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى.")
+
+        // Update user message status to error
+        setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "error" } : msg)))
+      } finally {
+        setIsLoading(false)
+        setIsTyping(false)
+      }
+    },
+    [
+      isLoading,
+      messages,
+      user,
+      profile,
+      sessionId,
+      deviceInfo,
+      conversationContext,
+      supabase,
+      generateContextualSuggestions,
+    ],
+  )
+
+  // Send message with enhanced AI processing and real-time data
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
 
     const messageContent = inputValue.trim()
     setInputValue("")
     setError(null)
+
+    // Check for repetitive questions
+    const isRepetitive = conversationContext.some(
+      (msg) =>
+        msg.toLowerCase().includes(messageContent.toLowerCase()) ||
+        messageContent.toLowerCase().includes(msg.toLowerCase()),
+    )
+
+    if (isRepetitive) {
+      toast.warning("لقد سألت هذا السؤال من قبل. جرب سؤالاً مختلفاً أو اطلب توضيحاً إضافياً.")
+      return
+    }
+
+    // Add to conversation context
+    setConversationContext((prev) => [...prev, messageContent])
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -217,7 +410,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       // Update message status to sent
       setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "sent" } : msg)))
 
-      // Prepare conversation history for AI
+      // Prepare conversation history for AI with enhanced context
       const conversationHistory = messages.map((msg) => ({
         role: msg.role as "user" | "assistant",
         content: msg.content,
@@ -229,12 +422,23 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
         content: messageContent,
       })
 
-      // Generate AI response using enhanced Groq service
+      // Generate AI response with real-time data integration
       const aiResponse = await groqAI.generateResponse(conversationHistory, {
         userId: user?.id,
         sessionId,
         deviceInfo,
+        conversationContext,
+        timestamp: new Date().toISOString(),
+        realTimeData: {
+          currentTime: new Date().toLocaleString("ar-SA"),
+          userLocation: "Syria",
+          sessionDuration: Date.now() - Number.parseInt(sessionId.split("_")[1]),
+          messageCount: messages.length + 1,
+        },
       })
+
+      // Generate contextual suggestions based on AI response
+      const contextualSuggestions = generateContextualSuggestions(aiResponse.content, conversationContext)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -248,12 +452,13 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
           sources: aiResponse.sources,
           requiresHumanFollowup: aiResponse.requiresHumanFollowup,
           suggestedActions: aiResponse.suggestedActions,
+          contextualSuggestions,
         },
       }
 
       setMessages((prev) => [...prev, assistantMessage])
 
-      // Log interaction to database if user is authenticated
+      // Log interaction to database
       if (user && profile) {
         try {
           await supabase.from("agent_interactions").insert({
@@ -269,11 +474,11 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               intent: "general_inquiry",
               requiresHumanFollowup: aiResponse.requiresHumanFollowup,
               deviceInfo,
+              contextualSuggestions,
             },
           })
         } catch (dbError) {
           console.error("Error logging interaction:", dbError)
-          // Don't show error to user for logging failures
         }
       }
 
@@ -317,7 +522,18 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       setIsLoading(false)
       setIsTyping(false)
     }
-  }, [inputValue, isLoading, messages, user, profile, sessionId, deviceInfo, supabase])
+  }, [
+    inputValue,
+    isLoading,
+    messages,
+    user,
+    profile,
+    sessionId,
+    deviceInfo,
+    conversationContext,
+    supabase,
+    generateContextualSuggestions,
+  ])
 
   // Handle keyboard shortcuts
   const handleKeyPress = useCallback(
@@ -335,6 +551,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     if (confirm("هل أنت متأكد من حذف المحادثة؟")) {
       setMessages([])
       setError(null)
+      setConversationContext([])
       // Re-add welcome message
       setTimeout(() => {
         const welcomeMessage: Message = {
@@ -346,6 +563,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
           metadata: {
             confidence: 1.0,
             sources: ["welcome"],
+            contextualSuggestions: ["ما هي خدماتكم؟", "كيف يعمل الوكيل الذكي؟", "أريد استشارة مخصصة"],
           },
         }
         setMessages([welcomeMessage])
@@ -391,7 +609,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl ${
+      className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-white border-2 border-black rounded-lg shadow-2xl ${
         isMinimized
           ? "w-80 h-16 bottom-4"
           : deviceInfo.isMobile
@@ -404,23 +622,23 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
+      <div className="flex items-center justify-between p-4 border-b-2 border-black bg-white">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bot className="w-6 h-6 text-gray-300" />
+            <Bot className="w-6 h-6 text-black" />
             <div
               className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
                 connectionStatus === "online"
-                  ? "bg-green-400"
+                  ? "bg-green-500"
                   : connectionStatus === "connecting"
-                    ? "bg-yellow-400"
-                    : "bg-red-400"
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
               }`}
             />
           </div>
           <div>
-            <h3 className="text-white font-semibold">مساعد رؤيا الذكي</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <h3 className="text-black font-semibold">مساعد رؤيا الذكي</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-600">
               {connectionStatus === "online" ? (
                 <>
                   <Wifi className="w-3 h-3" />
@@ -445,7 +663,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             size="sm"
             variant="ghost"
             onClick={() => setIsMinimized(!isMinimized)}
-            className="text-gray-400 hover:text-white hover:bg-gray-700"
+            className="text-black hover:text-gray-600 hover:bg-gray-100"
           >
             {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
           </Button>
@@ -453,7 +671,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             size="sm"
             variant="ghost"
             onClick={onToggle}
-            className="text-gray-400 hover:text-white hover:bg-gray-700"
+            className="text-black hover:text-gray-600 hover:bg-gray-100"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -465,7 +683,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
           {/* Messages */}
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900"
+            className="flex-1 overflow-y-auto p-4 space-y-4 bg-white"
             style={{ height: deviceInfo.isMobile ? "calc(85vh - 140px)" : "calc(600px - 140px)" }}
           >
             <AnimatePresence>
@@ -479,7 +697,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                 >
                   {message.role === "assistant" && (
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                         <Bot className="w-4 h-4 text-white" />
                       </div>
                     </div>
@@ -487,8 +705,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${
                       message.role === "user"
-                        ? "bg-gray-700 text-white"
-                        : "bg-gray-800 text-gray-100 border border-gray-700"
+                        ? "bg-black text-white"
+                        : "bg-gray-100 text-black border-2 border-gray-300"
                     }`}
                   >
                     <div
@@ -496,13 +714,13 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                       dangerouslySetInnerHTML={{ __html: formatMessageContent(message.content) }}
                     />
 
-                    {/* Message metadata - simplified without percentages */}
+                    {/* Message metadata */}
                     <div className="flex items-center justify-between mt-2 text-xs opacity-70">
                       <div className="flex items-center gap-2">
                         {message.status === "sending" && <Loader2 className="w-3 h-3 animate-spin" />}
-                        {message.status === "error" && <AlertTriangle className="w-3 h-3 text-red-400" />}
+                        {message.status === "error" && <AlertTriangle className="w-3 h-3 text-red-500" />}
                         {message.status === "sent" && message.role === "assistant" && (
-                          <CheckCircle className="w-3 h-3 text-green-400" />
+                          <CheckCircle className="w-3 h-3 text-green-500" />
                         )}
                         <span>
                           {message.timestamp.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
@@ -510,21 +728,40 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                       </div>
                     </div>
 
+                    {/* Contextual suggestions - direct click to send */}
+                    {message.metadata?.contextualSuggestions && message.metadata.contextualSuggestions.length > 0 && (
+                      <div className="mt-3 space-y-1">
+                        <div className="text-xs text-gray-500 mb-2">اقتراحات:</div>
+                        {message.metadata.contextualSuggestions.map((suggestion, index) => (
+                          <Button
+                            key={index}
+                            size="sm"
+                            variant="outline"
+                            className="text-xs mr-1 mb-1 border-black text-black hover:bg-black hover:text-white bg-white transition-colors"
+                            onClick={() => handleSuggestedQuestionClick(suggestion)}
+                            disabled={isLoading}
+                          >
+                            {suggestion}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Suggested actions */}
                     {message.metadata?.suggestedActions && message.metadata.suggestedActions.length > 0 && (
                       <div className="mt-3 space-y-1">
-                        <div className="text-xs text-gray-400 mb-2">إجراءات مقترحة:</div>
+                        <div className="text-xs text-gray-500 mb-2">إجراءات مقترحة:</div>
                         {message.metadata.suggestedActions.map((action, index) => (
                           <Button
                             key={index}
                             size="sm"
                             variant="outline"
-                            className="text-xs mr-1 mb-1 border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+                            className="text-xs mr-1 mb-1 border-black text-black hover:bg-black hover:text-white bg-white"
                             onClick={() => {
                               if (action.includes("التواصل") || action.includes("اتصال")) {
                                 window.open("tel:+963940632191")
                               } else {
-                                setInputValue(action)
+                                handleSuggestedQuestionClick(action)
                               }
                             }}
                           >
@@ -540,7 +777,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCopyMessage(message.content)}
-                        className="text-xs text-gray-400 hover:text-white p-1 h-auto"
+                        className="text-xs text-gray-500 hover:text-black p-1 h-auto"
                       >
                         <Copy className="w-3 h-3" />
                       </Button>
@@ -549,7 +786,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleRetryMessage(message.id)}
-                          className="text-xs text-red-400 hover:text-red-300 p-1 h-auto"
+                          className="text-xs text-red-500 hover:text-red-700 p-1 h-auto"
                         >
                           إعادة المحاولة
                         </Button>
@@ -558,8 +795,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                   </div>
                   {message.role === "user" && (
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
+                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-black" />
                       </div>
                     </div>
                   )}
@@ -575,19 +812,19 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                 className="flex gap-3 justify-start"
               >
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                <div className="bg-gray-100 rounded-lg p-3 border-2 border-gray-300">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
                     <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
                       style={{ animationDelay: "0.1s" }}
                     />
                     <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
                       style={{ animationDelay: "0.2s" }}
                     />
                   </div>
@@ -603,7 +840,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             <Button
               size="sm"
               onClick={scrollToBottom}
-              className="absolute bottom-20 right-4 rounded-full w-8 h-8 p-0 bg-gray-600 hover:bg-gray-700"
+              className="absolute bottom-20 right-4 rounded-full w-8 h-8 p-0 bg-black hover:bg-gray-800 text-white"
             >
               ↓
             </Button>
@@ -611,8 +848,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 
           {/* Error display */}
           {error && (
-            <div className="px-4 py-2 bg-red-900/50 border-t border-red-700">
-              <div className="flex items-center gap-2 text-red-300 text-sm">
+            <div className="px-4 py-2 bg-red-100 border-t-2 border-red-500">
+              <div className="flex items-center gap-2 text-red-700 text-sm">
                 <AlertTriangle className="w-4 h-4" />
                 {error}
               </div>
@@ -620,7 +857,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
           )}
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-700 bg-gray-800">
+          <div className="p-4 border-t-2 border-black bg-white">
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Input
@@ -630,7 +867,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                   onKeyPress={handleKeyPress}
                   placeholder={connectionStatus === "online" ? "اكتب رسالتك..." : "غير متصل..."}
                   disabled={isLoading || connectionStatus !== "online"}
-                  className="bg-gray-900 border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white border-2 border-black text-black placeholder-gray-500 pr-10 focus:ring-2 focus:ring-black"
                   dir="rtl"
                 />
                 {messages.length > 1 && (
@@ -638,7 +875,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                     size="sm"
                     variant="ghost"
                     onClick={handleClearConversation}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white p-1 h-auto"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black p-1 h-auto"
                     title="مسح المحادثة"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -648,7 +885,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading || connectionStatus !== "online"}
-                className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50"
+                className="bg-black hover:bg-gray-800 disabled:opacity-50 text-white border-2 border-black"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>

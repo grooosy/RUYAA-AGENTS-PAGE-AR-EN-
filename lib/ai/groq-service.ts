@@ -29,6 +29,14 @@ interface GenerationOptions {
   userId?: string
   sessionId?: string
   deviceInfo?: any
+  conversationContext?: string[]
+  timestamp?: string
+  realTimeData?: {
+    currentTime: string
+    userLocation: string
+    sessionDuration: number
+    messageCount?: number
+  }
 }
 
 export class GroqAIService {
@@ -43,8 +51,8 @@ export class GroqAIService {
 معلومات الشركة المؤكدة:
 - اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
 - التخصص: حلول الذكاء الاصطناعي والوكلاء الذكيين
-- الهاتف: 963940632191+
-- واتساب: 963940632191+
+- الهاتف: (+963940632191)
+- واتساب: (+963940632191)
 
 الخدمات المتاحة (معلومات عامة):
 1. وكيل الدعم الذكي - نظام دعم عملاء ذكي
@@ -59,6 +67,8 @@ export class GroqAIService {
 - كن صادقاً إذا لم تعرف معلومة محددة
 - استخدم فقط المعلومات المؤكدة من قاعدة المعرفة
 - اقترح التواصل المباشر للاستفسارات المتخصصة
+- تجنب تكرار الأسئلة والإجابات في نفس المحادثة
+- استخدم البيانات الحية والسياق الزمني في إجاباتك
 
 التعليمات:
 - أجب باللغة العربية بشكل أساسي
@@ -66,7 +76,8 @@ export class GroqAIService {
 - قدم معلومات دقيقة ومؤكدة فقط
 - وضح عندما تحتاج معلومات إضافية
 - اقترح التواصل المباشر للاستفسارات المتخصصة
-- استخدم الرموز التعبيرية بشكل مناسب ومعتدل`
+- استخدم الرموز التعبيرية بشكل مناسب ومعتدل
+- اعتبر الوقت الحالي والسياق في إجاباتك`
 
   constructor() {
     this.apiKey = process.env.GROQ_API_KEY || ""
@@ -95,8 +106,8 @@ export class GroqAIService {
         id: "contact-info",
         title: "معلومات التواصل",
         content: `للتواصل مع رؤيا كابيتال:
-        - الهاتف: 963940632191+
-        - واتساب: 963940632191+
+        - الهاتف: (+963940632191)
+        - واتساب: (+963940632191)
         - نحن متاحون للرد على استفساراتكم وتقديم استشارات مخصصة`,
         category: "contact",
         lastUpdated: new Date(),
@@ -114,6 +125,19 @@ export class GroqAIService {
         lastUpdated: new Date(),
         verified: true,
       },
+      {
+        id: "ai-capabilities",
+        title: "قدرات الذكاء الاصطناعي",
+        content: `وكلاؤنا الذكيون يمكنهم:
+        - فهم اللغة العربية والإنجليزية
+        - التعلم من التفاعلات السابقة
+        - تقديم ردود سياقية ذكية
+        - العمل على مدار الساعة
+        - التكامل مع أنظمة الشركة الموجودة`,
+        category: "capabilities",
+        lastUpdated: new Date(),
+        verified: true,
+      },
     ]
   }
 
@@ -124,62 +148,48 @@ export class GroqAIService {
     const startTime = Date.now()
 
     try {
-      // System prompt in Arabic for Ruyaa Capital
-      const systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
+      // Get real-time knowledge base context
+      const knowledgeContext = await this.getKnowledgeContext(
+        conversationHistory[conversationHistory.length - 1]?.content || "",
+      )
 
-معلومات الشركة:
-- اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
-- التخصص: حلول الوكلاء الذكيين، الذكاء الاصطناعي، أتمتة خدمة العملاء
-- رقم الهاتف: +963940632191
-- الخدمات الرئيسية:
-  * وكلاء ذكيين للدعم الفني
-  * أتمتة المبيعات
-  * إدارة وسائل التواصل الاجتماعي
-  * خدمة العملاء الذكية
+      // Build enhanced system prompt with real-time data
+      const enhancedSystemPrompt = this.buildEnhancedSystemPrompt(knowledgeContext, options)
 
-قواعد المحادثة:
-1. أجب باللغة العربية دائماً
-2. كن مهذباً ومفيداً
-3. إذا لم تعرف إجابة دقيقة، أرشد العميل للاتصال بالرقم +963940632191
-4. لا تخترع معلومات غير موجودة
-5. ركز على خدمات الشركة
-6. اقترح التواصل المباشر للتفاصيل التقنية والأسعار
-
-أجب بشكل طبيعي ومفيد.`
-
-      // Prepare messages for the AI
-      const messages = [{ role: "system" as const, content: systemPrompt }, ...conversationHistory]
+      // Prepare messages for the AI with conversation context
+      const messages = [{ role: "system" as const, content: enhancedSystemPrompt }, ...conversationHistory]
 
       const { text } = await generateText({
         model: this.model,
         messages,
-        maxTokens: 500,
+        maxTokens: 800,
         temperature: 0.7,
       })
 
       const responseTime = Date.now() - startTime
 
       // Analyze response for confidence and follow-up needs
-      const requiresHumanFollowup = this.shouldRequireHumanFollowup(text)
-      const suggestedActions = this.generateSuggestedActions(text)
+      const requiresHumanFollowup = this.shouldRequireHumanFollowup(text, conversationHistory)
+      const suggestedActions = this.generateSuggestedActions(text, conversationHistory, options)
 
       return {
         content: text,
         responseTime,
-        confidence: 0.85, // Static confidence for now
-        sources: ["groq_ai", "company_knowledge"],
+        confidence: this.calculateConfidence(text, knowledgeContext),
+        sources: ["groq_ai", "company_knowledge", "real_time_data"],
         requiresHumanFollowup,
         suggestedActions,
       }
     } catch (error) {
       console.error("Error generating AI response:", error)
 
-      // Fallback response in Arabic
-      const fallbackResponse = `عذراً، حدث خطأ تقني. 
+      // Fallback response in Arabic with real-time context
+      const currentTime = options.realTimeData?.currentTime || new Date().toLocaleString("ar-SA")
+      const fallbackResponse = `عذراً، أواجه مشكلة تقنية في الوقت الحالي (${currentTime}). 
 
 للحصول على المساعدة الفورية:
-📞 اتصل بنا: +963940632191
-💬 واتساب: +963940632191
+📞 اتصل بنا: (+963940632191)
+💬 واتساب: (+963940632191)
 
 فريقنا متاح لمساعدتك في أي وقت.`
 
@@ -194,7 +204,102 @@ export class GroqAIService {
     }
   }
 
-  private shouldRequireHumanFollowup(response: string): boolean {
+  private buildEnhancedSystemPrompt(knowledgeContext: string, options: GenerationOptions): string {
+    let enhancedPrompt = this.systemPrompt
+
+    // Add real-time data context
+    if (options.realTimeData) {
+      enhancedPrompt += `
+
+معلومات الجلسة الحالية:
+- الوقت الحالي: ${options.realTimeData.currentTime}
+- موقع المستخدم: ${options.realTimeData.userLocation}
+- مدة الجلسة: ${Math.floor(options.realTimeData.sessionDuration / 1000)} ثانية
+- عدد الرسائل: ${options.realTimeData.messageCount || 0}`
+    }
+
+    // Add conversation context to avoid repetition
+    if (options.conversationContext && options.conversationContext.length > 0) {
+      enhancedPrompt += `
+
+سياق المحادثة السابق:
+${options.conversationContext.slice(-5).join("\n")}
+
+تجنب تكرار المعلومات المذكورة سابقاً وقدم معلومات جديدة أو توضيحات إضافية.`
+    }
+
+    // Add knowledge base context
+    if (knowledgeContext) {
+      enhancedPrompt += `
+
+معلومات من قاعدة المعرفة:
+${knowledgeContext}`
+    }
+
+    return enhancedPrompt
+  }
+
+  private async getKnowledgeContext(userMessage: string): Promise<string> {
+    try {
+      // Search local knowledge base first
+      const localKnowledge = this.searchKnowledgeBase(userMessage)
+
+      // Try to get from Supabase knowledge base
+      const { data: knowledgeItems } = await this.supabase
+        .from("knowledge_base")
+        .select("content, title, category")
+        .eq("is_verified", true)
+        .textSearch("content", userMessage)
+        .limit(3)
+
+      let context = ""
+
+      if (localKnowledge.length > 0) {
+        context += localKnowledge.map((item) => `${item.title}: ${item.content}`).join("\n\n")
+      }
+
+      if (knowledgeItems && knowledgeItems.length > 0) {
+        if (context) context += "\n\n"
+        context += knowledgeItems.map((item) => `${item.title}: ${item.content}`).join("\n\n")
+      }
+
+      return context || "لا توجد معلومات إضافية من قاعدة المعرفة."
+    } catch (error) {
+      console.error("Error fetching knowledge context:", error)
+      return "لا توجد معلومات إضافية من قاعدة المعرفة."
+    }
+  }
+
+  private searchKnowledgeBase(query: string): KnowledgeItem[] {
+    const queryLower = query.toLowerCase()
+
+    return this.knowledgeBase
+      .filter((item) => {
+        return (
+          item.verified &&
+          (item.title.toLowerCase().includes(queryLower) ||
+            item.content.toLowerCase().includes(queryLower) ||
+            item.category.toLowerCase().includes(queryLower))
+        )
+      })
+      .slice(0, 3)
+  }
+
+  private calculateConfidence(response: string, knowledgeContext: string): number {
+    // Higher confidence if response is based on verified knowledge
+    if (knowledgeContext && knowledgeContext.length > 50) {
+      return 0.9
+    }
+
+    // Lower confidence for general responses
+    if (response.includes("للحصول على معلومات دقيقة") || response.includes("يرجى التواصل معنا")) {
+      return 0.8
+    }
+
+    return 0.75
+  }
+
+  private shouldRequireHumanFollowup(response: string, conversationHistory: any[]): boolean {
     const followupKeywords = [
       "أسعار",
       "تكلفة",
@@ -205,60 +310,49 @@ export class GroqAIService {
       "تخصيص",
       "تطوير خاص",
       "استشارة متقدمة",
+      "تدريب متخصص",
     ]
 
-    return followupKeywords.some((keyword) => response.includes(keyword))
+    return followupKeywords.some((keyword) => response.includes(keyword)) || conversationHistory.length > 6 // Long conversations need human touch
   }
 
-  private generateSuggestedActions(response: string): string[] {
+  private generateSuggestedActions(response: string, conversationHistory: any[], options: GenerationOptions): string[] {
     const actions = []
+    const responseLower = response.toLowerCase()
 
-    if (response.includes("خدمات") || response.includes("حلول")) {
-      actions.push("ما هي خدماتكم؟")
+    // Context-aware suggestions based on response content
+    if (responseLower.includes("خدمات") || responseLower.includes("حلول")) {
+      actions.push("أريد معرفة المزيد عن الخدمات")
     }
 
-    if (response.includes("وكيل") || response.includes("ذكي")) {
-      actions.push("كيف يعمل الوكيل الذكي؟")
+    if (responseLower.includes("وكيل") || responseLower.includes("ذكي")) {
+      actions.push("كيف يمكنني تجربة الوكيل الذكي؟")
     }
 
-    if (response.includes("أسعار") || response.includes("تكلفة")) {
-      actions.push("التواصل للاستفسار عن الأسعار")
+    if (responseLower.includes("أسعار") || responseLower.includes("تكلفة")) {
+      actions.push("أريد عرض سعر مخصص")
     }
 
-    actions.push("أريد استشارة مخصصة")
+    if (responseLower.includes("تدريب") || responseLower.includes("دعم")) {
+      actions.push("ما هي خدمات الدعم المتاحة؟")
+    }
+
+    // Always include contact option for complex queries
+    if (conversationHistory.length > 3) {
+      actions.push("أريد التحدث مع مختص")
+    }
 
     return actions.slice(0, 3) // Limit to 3 actions
   }
 
-  private async getKnowledgeContext(userMessage: string): Promise<string> {
-    try {
-      // Search knowledge base for relevant information
-      const { data: knowledgeItems } = await this.supabase
-        .from("knowledge_base")
-        .select("content, title, category")
-        .eq("is_verified", true)
-        .textSearch("content", userMessage)
-        .limit(3)
-
-      if (knowledgeItems && knowledgeItems.length > 0) {
-        return knowledgeItems.map((item) => `${item.title}: ${item.content}`).join("\n\n")
-      }
-
-      return "لا توجد معلومات إضافية من قاعدة المعرفة."
-    } catch (error) {
-      console.error("Error fetching knowledge context:", error)
-      return "لا توجد معلومات إضافية من قاعدة المعرفة."
-    }
-  }
-
   async testConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/models`, {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+      const testResponse = await generateText({
+        model: this.model,
+        messages: [{ role: "user", content: "مرحبا" }],
+        maxTokens: 10,
       })
-      return response.ok
+      return !!testResponse.text
     } catch (error) {
       console.error("Groq connection test failed:", error)
       return false
@@ -303,19 +397,15 @@ export class GroqAIService {
   }
 
   async validateKnowledgeItem(item: KnowledgeItem): Promise<boolean> {
-    // In a real implementation, this would validate against external sources
-    // For now, we'll do basic validation
     return !!(item.title && item.content && item.category)
   }
 
-  // System instructions management
   getSystemInstructions(): string {
     return this.systemPrompt
   }
 
   updateSystemInstructions(newInstructions: string): boolean {
     try {
-      // Validate that essential safety instructions are maintained
       if (newInstructions.includes("لا تذكر أسعار محددة") && newInstructions.includes("كن صادقاً")) {
         this.systemPrompt = newInstructions
         return true
@@ -324,120 +414,6 @@ export class GroqAIService {
     } catch (error) {
       console.error("Error updating system instructions:", error)
       return false
-    }
-  }
-
-  // Streaming response for real-time interaction
-  async *streamResponse(messages: AIMessage[]) {
-    try {
-      const userMessage = messages[messages.length - 1]?.content || ""
-      const relevantKnowledge = this.searchKnowledgeBase(userMessage)
-      const intent = await this.analyzeUserIntent(userMessage)
-      const enhancedSystemPrompt = this.buildEnhancedSystemPrompt(relevantKnowledge, intent)
-
-      const result = await generateText({
-        model: this.model,
-        messages: [{ role: "system", content: enhancedSystemPrompt }, ...messages],
-        maxTokens: 1000,
-        temperature: 0.3,
-      })
-
-      for await (const delta of result.textStream) {
-        yield delta
-      }
-    } catch (error) {
-      console.error("Groq AI Streaming Error:", error)
-      yield "عذراً، حدث خطأ في الاتصال. يرجى التواصل معنا مباشرة على +963940632191"
-    }
-  }
-
-  private buildEnhancedSystemPrompt(knowledge: KnowledgeItem[], intent: any): string {
-    let knowledgeContext = ""
-
-    if (knowledge.length > 0) {
-      knowledgeContext = "\n\nمعلومات مؤكدة من قاعدة المعرفة:\n"
-      knowledge.forEach((item) => {
-        knowledgeContext += `- ${item.title}: ${item.content}\n`
-      })
-    }
-
-    return (
-      this.systemPrompt +
-      knowledgeContext +
-      `
-
-تحليل نية المستخدم: ${intent.intent}
-مستوى الثقة: ${intent.confidence}
-
-تذكر: استخدم فقط المعلومات المؤكدة أعلاه. إذا لم تجد معلومة محددة، اطلب من العميل التواصل المباشر.`
-    )
-  }
-
-  private searchKnowledgeBase(query: string): KnowledgeItem[] {
-    const queryLower = query.toLowerCase()
-
-    return this.knowledgeBase
-      .filter((item) => {
-        return (
-          item.verified &&
-          (item.title.toLowerCase().includes(queryLower) ||
-            item.content.toLowerCase().includes(queryLower) ||
-            item.category.toLowerCase().includes(queryLower))
-        )
-      })
-      .slice(0, 3) // Limit to most relevant items
-  }
-
-  async analyzeUserIntent(message: string): Promise<{
-    intent: string
-    confidence: number
-    entities: string[]
-  }> {
-    try {
-      const { text } = await generateText({
-        model: this.model,
-        messages: [
-          {
-            role: "system" as const,
-            content: `حلل النية من الرسالة التالية وأرجع JSON بالشكل التالي:
-{
-  "intent": "نوع النية (استفسار_خدمات، طلب_سعر، دعم_تقني، شكوى، تحية، أخرى)",
-  "confidence": رقم من 0 إلى 1,
-  "entities": ["الكيانات المستخرجة من النص"]
-}
-
-كن دقيقاً في التحليل ولا تخترع معلومات.`,
-          },
-          {
-            role: "user" as const,
-            content: message,
-          },
-        ],
-        maxTokens: 200,
-        temperature: 0.1, // Very low temperature for consistent analysis
-      })
-
-      try {
-        const parsed = JSON.parse(text)
-        return {
-          intent: parsed.intent || "أخرى",
-          confidence: Math.min(Math.max(parsed.confidence || 0.5, 0), 1),
-          entities: Array.isArray(parsed.entities) ? parsed.entities : [],
-        }
-      } catch {
-        return {
-          intent: "أخرى",
-          confidence: 0.3,
-          entities: [],
-        }
-      }
-    } catch (error) {
-      console.error("Intent Analysis Error:", error)
-      return {
-        intent: "أخرى",
-        confidence: 0.1,
-        entities: [],
-      }
     }
   }
 }
