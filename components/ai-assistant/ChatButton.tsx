@@ -95,24 +95,24 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute bottom-20 right-0 bg-black/95 backdrop-blur-xl text-white px-4 py-3 rounded-2xl shadow-2xl border border-gray-800/50 max-w-xs"
+            className="absolute bottom-20 right-0 bg-black text-white px-4 py-3 rounded-2xl shadow-2xl border-2 border-white max-w-xs"
             style={{
               direction: isRTL ? "rtl" : "ltr",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.1)",
             }}
           >
             <div className="flex items-center space-x-3 space-x-reverse">
-              <div className="p-2 bg-gray-800/50 rounded-xl border border-gray-700/50">
-                <Sparkles className="w-5 h-5 text-gray-300 flex-shrink-0" />
+              <div className="p-2 bg-white rounded-xl">
+                <Sparkles className="w-5 h-5 text-black flex-shrink-0" />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">{user ? `مرحباً مرة أخرى! 🎯` : "مرحباً! 👋"}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm font-bold text-white">{user ? `مرحباً مرة أخرى! 🎯` : "مرحباً! 👋"}</p>
+                <p className="text-xs text-gray-300 mt-1">
                   {user ? "لدي معلومات محدثة عن خدماتنا الجديدة" : "أنا مساعدك الذكي. اسألني عن خدمات الوكلاء الذكيين!"}
                 </p>
               </div>
             </div>
-            <div className="absolute bottom-0 right-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black/95 border-r border-b border-gray-800/50"></div>
+            <div className="absolute bottom-0 right-6 transform translate-y-1/2 rotate-45 w-3 h-3 bg-black border-r-2 border-b-2 border-white"></div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -127,12 +127,12 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
         {showPulse && !isOpen && (
           <>
             <motion.div
-              className="absolute inset-0 rounded-full bg-gray-700/30"
+              className="absolute inset-0 rounded-full bg-black/20"
               animate={{ scale: [1, 1.5, 2], opacity: [0.5, 0.2, 0] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeOut" }}
             />
             <motion.div
-              className="absolute inset-0 rounded-full bg-gray-600/40"
+              className="absolute inset-0 rounded-full bg-black/30"
               animate={{ scale: [1, 1.3, 1.8], opacity: [0.6, 0.3, 0] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: 0.5, ease: "easeOut" }}
             />
@@ -144,7 +144,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10 border-2 border-black"
+            className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10 border-2 border-white"
           >
             {unreadCount > 9 ? "9+" : unreadCount}
           </motion.div>
@@ -156,18 +156,15 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
           onMouseLeave={handleMouseLeave}
           className={`
             relative w-16 h-16 rounded-full shadow-2xl border-2 transition-all duration-300 overflow-hidden
-            ${isOpen ? "bg-gray-800 hover:bg-gray-700 border-gray-700" : "bg-black hover:bg-gray-900 border-gray-800"}
+            ${isOpen ? "bg-white hover:bg-gray-100 border-black text-black" : "bg-black hover:bg-gray-900 border-white text-white"}
             ${isHovered ? "shadow-3xl" : "shadow-2xl"}
           `}
           style={{
             boxShadow: isHovered
-              ? "0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(75, 85, 99, 0.2)"
-              : "0 10px 30px rgba(0, 0, 0, 0.5)",
+              ? "0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 4px rgba(0, 0, 0, 0.1)"
+              : "0 10px 30px rgba(0, 0, 0, 0.2)",
           }}
         >
-          {/* Background gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-800/20 to-gray-900/40 rounded-full" />
-
           {/* Icon container */}
           <div className="relative z-10 flex items-center justify-center">
             <AnimatePresence mode="wait">
@@ -179,7 +176,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
                   exit={{ rotate: 90, opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <X className="w-6 h-6 text-white" />
+                  <X className="w-6 h-6" />
                 </motion.div>
               ) : (
                 <motion.div
@@ -190,7 +187,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
                   transition={{ duration: 0.2 }}
                   className="relative"
                 >
-                  <MessageSquare className="w-6 h-6 text-white" />
+                  <MessageSquare className="w-6 h-6" />
                   {/* AI indicator */}
                   <motion.div
                     animate={{
@@ -202,7 +199,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
                       repeat: Number.POSITIVE_INFINITY,
                       ease: "easeInOut",
                     }}
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-gray-400 rounded-full flex items-center justify-center border border-black"
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center border border-black"
                   >
                     <Brain className="w-2 h-2 text-black" />
                   </motion.div>
@@ -213,31 +210,28 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
 
           {/* Ripple effect on hover */}
           <motion.div
-            className="absolute inset-0 bg-white/10 rounded-full opacity-0"
+            className={`absolute inset-0 rounded-full opacity-0 ${isOpen ? "bg-black/10" : "bg-white/10"}`}
             animate={isHovered ? { scale: [0, 1], opacity: [0.3, 0] } : {}}
             transition={{ duration: 0.6 }}
           />
-
-          {/* Inner glow effect */}
-          <div className="absolute inset-1 bg-gradient-to-br from-gray-700/20 to-transparent rounded-full" />
         </Button>
 
         {/* Status indicator */}
         <motion.div
-          className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-600 rounded-full border-2 border-black shadow-lg"
+          className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-black shadow-lg"
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
         >
-          <div className="w-full h-full bg-green-500 rounded-full" />
+          <div className="w-full h-full bg-black rounded-full" />
         </motion.div>
 
         {/* Power indicator */}
         <motion.div
-          className="absolute -top-1 -left-1 w-3 h-3 bg-gray-600 rounded-full border border-black flex items-center justify-center"
+          className="absolute -top-1 -left-1 w-3 h-3 bg-white rounded-full border border-black flex items-center justify-center"
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
         >
-          <Zap className="w-2 h-2 text-white" />
+          <Zap className="w-2 h-2 text-black" />
         </motion.div>
       </motion.div>
 
@@ -247,7 +241,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 5 }}
-          className="absolute bottom-20 right-0 bg-black/90 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap border border-gray-800/50 backdrop-blur-sm"
+          className="absolute bottom-20 right-0 bg-black text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap border-2 border-white"
         >
           اضغط Ctrl+K للفتح السريع
         </motion.div>

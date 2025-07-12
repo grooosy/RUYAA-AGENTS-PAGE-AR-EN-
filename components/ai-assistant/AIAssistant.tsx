@@ -18,6 +18,7 @@ import {
   Copy,
   AlertTriangle,
   CheckCircle,
+  MessageCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -598,7 +599,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     return content
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      .replace(/`(.*?)`/g, '<code class="bg-gray-200 px-1 rounded">$1</code>')
+      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded text-black">$1</code>')
       .replace(/\n/g, "<br>")
   }
 
@@ -609,7 +610,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-white border-2 border-black rounded-lg shadow-2xl ${
+      className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-white border-2 border-black rounded-2xl shadow-2xl ${
         isMinimized
           ? "w-80 h-16 bottom-4"
           : deviceInfo.isMobile
@@ -619,30 +620,33 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
       style={{
         maxHeight: deviceInfo.isMobile ? "calc(100vh - 20px)" : "600px",
         top: deviceInfo.isMobile && !isMinimized ? "10px" : "auto",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)",
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b-2 border-black bg-white">
+      <div className="flex items-center justify-between p-4 border-b-2 border-black bg-black">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bot className="w-6 h-6 text-black" />
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-black" />
+            </div>
             <div
-              className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+              className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border border-black ${
                 connectionStatus === "online"
-                  ? "bg-green-500"
+                  ? "bg-white"
                   : connectionStatus === "connecting"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
+                    ? "bg-gray-300"
+                    : "bg-gray-500"
               }`}
             />
           </div>
           <div>
-            <h3 className="text-black font-semibold">مساعد رؤيا الذكي</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-600">
+            <h3 className="text-white font-bold text-lg">مساعد رؤيا الذكي</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-300">
               {connectionStatus === "online" ? (
                 <>
                   <Wifi className="w-3 h-3" />
-                  متصل
+                  متصل ومتاح
                 </>
               ) : connectionStatus === "connecting" ? (
                 <>
@@ -663,7 +667,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             size="sm"
             variant="ghost"
             onClick={() => setIsMinimized(!isMinimized)}
-            className="text-black hover:text-gray-600 hover:bg-gray-100"
+            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-8 h-8 p-0"
           >
             {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
           </Button>
@@ -671,7 +675,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             size="sm"
             variant="ghost"
             onClick={onToggle}
-            className="text-black hover:text-gray-600 hover:bg-gray-100"
+            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-8 h-8 p-0"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -703,10 +707,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === "user"
-                        ? "bg-black text-white"
-                        : "bg-gray-100 text-black border-2 border-gray-300"
+                    className={`max-w-[80%] rounded-2xl p-4 ${
+                      message.role === "user" ? "bg-black text-white" : "bg-gray-50 text-black border-2 border-gray-200"
                     }`}
                   >
                     <div
@@ -715,12 +717,12 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                     />
 
                     {/* Message metadata */}
-                    <div className="flex items-center justify-between mt-2 text-xs opacity-70">
+                    <div className="flex items-center justify-between mt-3 text-xs opacity-60">
                       <div className="flex items-center gap-2">
                         {message.status === "sending" && <Loader2 className="w-3 h-3 animate-spin" />}
-                        {message.status === "error" && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                        {message.status === "error" && <AlertTriangle className="w-3 h-3" />}
                         {message.status === "sent" && message.role === "assistant" && (
-                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <CheckCircle className="w-3 h-3" />
                         )}
                         <span>
                           {message.timestamp.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
@@ -730,54 +732,58 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 
                     {/* Contextual suggestions - direct click to send */}
                     {message.metadata?.contextualSuggestions && message.metadata.contextualSuggestions.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        <div className="text-xs text-gray-500 mb-2">اقتراحات:</div>
-                        {message.metadata.contextualSuggestions.map((suggestion, index) => (
-                          <Button
-                            key={index}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs mr-1 mb-1 border-black text-black hover:bg-black hover:text-white bg-white transition-colors"
-                            onClick={() => handleSuggestedQuestionClick(suggestion)}
-                            disabled={isLoading}
-                          >
-                            {suggestion}
-                          </Button>
-                        ))}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-xs text-gray-500 mb-2 font-medium">اقتراحات:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {message.metadata.contextualSuggestions.map((suggestion, index) => (
+                            <Button
+                              key={index}
+                              size="sm"
+                              variant="outline"
+                              className="text-xs border-2 border-black text-black hover:bg-black hover:text-white bg-white transition-all duration-200 rounded-full px-3 py-1 h-auto"
+                              onClick={() => handleSuggestedQuestionClick(suggestion)}
+                              disabled={isLoading}
+                            >
+                              {suggestion}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
                     {/* Suggested actions */}
                     {message.metadata?.suggestedActions && message.metadata.suggestedActions.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        <div className="text-xs text-gray-500 mb-2">إجراءات مقترحة:</div>
-                        {message.metadata.suggestedActions.map((action, index) => (
-                          <Button
-                            key={index}
-                            size="sm"
-                            variant="outline"
-                            className="text-xs mr-1 mb-1 border-black text-black hover:bg-black hover:text-white bg-white"
-                            onClick={() => {
-                              if (action.includes("التواصل") || action.includes("اتصال")) {
-                                window.open("tel:+963940632191")
-                              } else {
-                                handleSuggestedQuestionClick(action)
-                              }
-                            }}
-                          >
-                            {action}
-                          </Button>
-                        ))}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-xs text-gray-500 mb-2 font-medium">إجراءات مقترحة:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {message.metadata.suggestedActions.map((action, index) => (
+                            <Button
+                              key={index}
+                              size="sm"
+                              variant="outline"
+                              className="text-xs border-2 border-black text-black hover:bg-black hover:text-white bg-white transition-all duration-200 rounded-full px-3 py-1 h-auto"
+                              onClick={() => {
+                                if (action.includes("التواصل") || action.includes("اتصال")) {
+                                  window.open("tel:+963940632191")
+                                } else {
+                                  handleSuggestedQuestionClick(action)
+                                }
+                              }}
+                            >
+                              {action}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
                     {/* Message actions */}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-gray-200">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleCopyMessage(message.content)}
-                        className="text-xs text-gray-500 hover:text-black p-1 h-auto"
+                        className="text-xs text-gray-500 hover:text-black p-1 h-auto rounded-full"
                       >
                         <Copy className="w-3 h-3" />
                       </Button>
@@ -786,7 +792,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleRetryMessage(message.id)}
-                          className="text-xs text-red-500 hover:text-red-700 p-1 h-auto"
+                          className="text-xs text-gray-600 hover:text-black p-1 h-auto rounded-full"
                         >
                           إعادة المحاولة
                         </Button>
@@ -816,17 +822,11 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <div className="bg-gray-100 rounded-lg p-3 border-2 border-gray-300">
+                <div className="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
-                    <div
-                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    />
+                    <div className="w-2 h-2 bg-black rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
+                    <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
                   </div>
                 </div>
               </motion.div>
@@ -840,7 +840,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             <Button
               size="sm"
               onClick={scrollToBottom}
-              className="absolute bottom-20 right-4 rounded-full w-8 h-8 p-0 bg-black hover:bg-gray-800 text-white"
+              className="absolute bottom-20 right-4 rounded-full w-10 h-10 p-0 bg-black hover:bg-gray-800 text-white shadow-lg border-2 border-white"
             >
               ↓
             </Button>
@@ -848,8 +848,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 
           {/* Error display */}
           {error && (
-            <div className="px-4 py-2 bg-red-100 border-t-2 border-red-500">
-              <div className="flex items-center gap-2 text-red-700 text-sm">
+            <div className="px-4 py-3 bg-gray-100 border-t-2 border-gray-300">
+              <div className="flex items-center gap-2 text-black text-sm">
                 <AlertTriangle className="w-4 h-4" />
                 {error}
               </div>
@@ -858,7 +858,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
 
           {/* Input */}
           <div className="p-4 border-t-2 border-black bg-white">
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <div className="flex-1 relative">
                 <Input
                   ref={inputRef}
@@ -867,7 +867,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                   onKeyPress={handleKeyPress}
                   placeholder={connectionStatus === "online" ? "اكتب رسالتك..." : "غير متصل..."}
                   disabled={isLoading || connectionStatus !== "online"}
-                  className="bg-white border-2 border-black text-black placeholder-gray-500 pr-10 focus:ring-2 focus:ring-black"
+                  className="bg-white border-2 border-black text-black placeholder-gray-500 pr-12 pl-4 py-3 rounded-full focus:ring-2 focus:ring-black focus:border-black"
                   dir="rtl"
                 />
                 {messages.length > 1 && (
@@ -875,7 +875,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                     size="sm"
                     variant="ghost"
                     onClick={handleClearConversation}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black p-1 h-auto"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black p-1 h-auto rounded-full"
                     title="مسح المحادثة"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -885,12 +885,12 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading || connectionStatus !== "online"}
-                className="bg-black hover:bg-gray-800 disabled:opacity-50 text-white border-2 border-black"
+                className="bg-black hover:bg-gray-800 disabled:opacity-50 text-white border-2 border-black rounded-full w-12 h-12 p-0 flex items-center justify-center"
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </Button>
             </div>
-            <div className="text-xs text-gray-500 mt-2 text-center">
+            <div className="text-xs text-gray-500 mt-3 text-center">
               للحصول على معلومات دقيقة عن الأسعار، اتصل بنا على (+963940632191)
             </div>
           </div>
