@@ -1,84 +1,81 @@
 import { createClient } from "@/lib/supabase/client"
 
-export interface KnowledgeItem {
+interface KnowledgeItem {
   id: string
   title: string
   content: string
   category: string
-  subcategory?: string
-  keywords: string[]
   language: string
   verified: boolean
   lastUpdated: Date
-  createdBy?: string
-  approvedBy?: string
-  version: number
+  metadata?: Record<string, any>
 }
 
-export interface SystemInstruction {
-  id: string
-  name: string
-  content: string
-  active: boolean
-  lastUpdated: Date
-  version: number
+interface SearchResult extends KnowledgeItem {
+  relevanceScore: number
 }
 
 export class KnowledgeManager {
   private supabase = createClient()
 
   // Knowledge Base Management
-  async getKnowledgeItems(category?: string, verified?: boolean): Promise<KnowledgeItem[]> {
+  async getKnowledgeItems(
+    options: {
+      category?: string
+      language?: string
+      verified?: boolean
+      page?: number
+      limit?: number
+    } = {},
+  ): Promise<{ items: KnowledgeItem[]; total: number }> {
+    const { category, language, verified, page = 1, limit = 20 } = options
+    const offset = (page - 1) * limit
+
     try {
-      let query = this.supabase.from("ai_knowledge_base").select("*").order("created_at", { ascending: false })
+      let query = this.supabase.from("knowledge_base").select("*", { count: "exact" })
 
       if (category) {
         query = query.eq("category", category)
       }
 
-      if (verified !== undefined) {
-        query = query.eq("is_active", verified)
+      if (language) {
+        query = query.eq("language", language)
       }
 
-      const { data, error } = await query
+      if (verified !== undefined) {
+        query = query.eq("verified", verified)
+      }
+
+      const { data, error, count } = await query
+        .order("updated_at", { ascending: false })
+        .range(offset, offset + limit - 1)
 
       if (error) {
         console.error("Error fetching knowledge items:", error)
-        return []
+        return { items: [], total: 0 }
       }
 
-      return (
-        data?.map((item) => ({
-          id: item.id,
-          title: item.title,
-          content: item.content,
-          category: item.category,
-          subcategory: item.subcategory,
-          keywords: item.keywords || [],
-          language: item.language || "arabic",
-          verified: item.is_active || false,
-          lastUpdated: new Date(item.updated_at),
-          version: 1,
-        })) || []
-      )
+      return {
+        items: data || [],
+        total: count || 0,
+      }
     } catch (error) {
-      console.error("Error in getKnowledgeItems:", error)
-      return []
+      console.error("Error fetching knowledge items:", error)
+      return { items: [], total: 0 }
     }
   }
 
-  async addKnowledgeItem(item: Omit<KnowledgeItem, "id" | "lastUpdated" | "version">): Promise<string | null> {
+  async addKnowledgeItem(item: Omit<KnowledgeItem, "id" | "lastUpdated">): Promise<string | null> {
     try {
       const { data, error } = await this.supabase
-        .from("ai_knowledge_base")
+        .from("knowledge_base")
         .insert({
           title: item.title,
           content: item.content,
           category: item.category,
-          subcategory: item.subcategory,
-          keywords: item.keywords,
           language: item.language,
-          is_active: item.verified,
+          verified: item.verified,
+          metadata: item.metadata || {},
         })
         .select("id")
         .single()
@@ -88,26 +85,22 @@ export class KnowledgeManager {
         return null
       }
 
-      return data?.id || null
+      return data.id
     } catch (error) {
-      console.error("Error in addKnowledgeItem:", error)
+      console.error("Error adding knowledge item:", error)
       return null
     }
   }
 
   async updateKnowledgeItem(id: string, updates: Partial<KnowledgeItem>): Promise<boolean> {
     try {
-      const updateData: any = {}
-
-      if (updates.title) updateData.title = updates.title
-      if (updates.content) updateData.content = updates.content
-      if (updates.category) updateData.category = updates.category
-      if (updates.subcategory) updateData.subcategory = updates.subcategory
-      if (updates.keywords) updateData.keywords = updates.keywords
-      if (updates.language) updateData.language = updates.language
-      if (updates.verified !== undefined) updateData.is_active = updates.verified
-
-      const { error } = await this.supabase.from("ai_knowledge_base").update(updateData).eq("id", id)
+      const { error } = await this.supabase
+        .from("knowledge_base")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
 
       if (error) {
         console.error("Error updating knowledge item:", error)
@@ -116,14 +109,14 @@ export class KnowledgeManager {
 
       return true
     } catch (error) {
-      console.error("Error in updateKnowledgeItem:", error)
+      console.error("Error updating knowledge item:", error)
       return false
     }
   }
 
   async deleteKnowledgeItem(id: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase.from("ai_knowledge_base").delete().eq("id", id)
+      const { error } = await this.supabase.from("knowledge_base").delete().eq("id", id)
 
       if (error) {
         console.error("Error deleting knowledge item:", error)
@@ -132,211 +125,143 @@ export class KnowledgeManager {
 
       return true
     } catch (error) {
-      console.error("Error in deleteKnowledgeItem:", error)
+      console.error("Error deleting knowledge item:", error)
       return false
     }
   }
 
-  async searchKnowledge(query: string, category?: string, limit = 10): Promise<KnowledgeItem[]> {
+  async searchKnowledge(
+    query: string,
+    options: {
+      category?: string
+      language?: string
+      limit?: number
+      minRelevance?: number
+    } = {},
+  ): Promise<SearchResult[]> {
+    const { category, language = "arabic", limit = 5, minRelevance = 0.3 } = options
+
     try {
+      // Use Supabase RPC function for semantic search
       const { data, error } = await this.supabase.rpc("search_knowledge_base", {
         p_query: query,
         p_category: category,
-        p_language: "arabic",
+        p_language: language,
         p_limit: limit,
       })
 
       if (error) {
-        console.error("Error searching knowledge base:", error)
+        console.error("Knowledge search error:", error)
         return []
       }
 
-      return (
-        data?.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          content: item.content,
-          category: item.category,
-          subcategory: item.subcategory,
-          keywords: [],
-          language: "arabic",
-          verified: true,
-          lastUpdated: new Date(),
-          version: 1,
-        })) || []
-      )
+      // Filter by relevance score
+      return (data || []).filter((item: SearchResult) => item.relevanceScore >= minRelevance)
     } catch (error) {
-      console.error("Error in searchKnowledge:", error)
+      console.error("Knowledge search error:", error)
       return []
     }
   }
 
-  // System Instructions Management
-  async getSystemInstructions(): Promise<SystemInstruction[]> {
-    // For now, return default instructions
-    // In a full implementation, this would fetch from database
-    return [
-      {
-        id: "default",
-        name: "Default AI Instructions",
-        content: `أنت مساعد ذكي من رؤيا كابيتال. كن صادقاً ومفيداً. لا تذكر أسعار محددة.`,
-        active: true,
-        lastUpdated: new Date(),
-        version: 1,
-      },
-    ]
+  // Get knowledge categories
+  async getCategories(): Promise<string[]> {
+    try {
+      const { data, error } = await this.supabase.from("knowledge_base").select("category").not("category", "is", null)
+
+      if (error) {
+        console.error("Error fetching categories:", error)
+        return []
+      }
+
+      // Get unique categories
+      const categories = [...new Set(data.map((item) => item.category))]
+      return categories.sort()
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+      return []
+    }
   }
 
-  async updateSystemInstructions(id: string, content: string): Promise<boolean> {
-    // Validate instructions contain safety guidelines
-    const requiredGuidelines = ["لا تذكر أسعار محددة", "كن صادقاً", "رؤيا كابيتال"]
+  // Verify knowledge item
+  async verifyKnowledgeItem(id: string, verified: boolean): Promise<boolean> {
+    return this.updateKnowledgeItem(id, { verified })
+  }
 
-    const hasAllGuidelines = requiredGuidelines.every((guideline) => content.includes(guideline))
+  // Bulk import knowledge items
+  async bulkImportKnowledge(items: Omit<KnowledgeItem, "id" | "lastUpdated">[]): Promise<{
+    success: number
+    failed: number
+    errors: string[]
+  }> {
+    let success = 0
+    let failed = 0
+    const errors: string[] = []
 
-    if (!hasAllGuidelines) {
-      console.error("System instructions must contain required safety guidelines")
-      return false
+    for (const item of items) {
+      try {
+        const id = await this.addKnowledgeItem(item)
+        if (id) {
+          success++
+        } else {
+          failed++
+          errors.push(`Failed to add item: ${item.title}`)
+        }
+      } catch (error) {
+        failed++
+        errors.push(`Error adding item ${item.title}: ${error}`)
+      }
     }
 
-    // In a full implementation, this would update the database
-    console.log("System instructions updated:", { id, content })
-    return true
+    return { success, failed, errors }
   }
 
-  // Analytics and Monitoring
+  // Export knowledge base
+  async exportKnowledge(
+    options: {
+      category?: string
+      language?: string
+      verified?: boolean
+    } = {},
+  ): Promise<KnowledgeItem[]> {
+    const { items } = await this.getKnowledgeItems({
+      ...options,
+      limit: 1000, // Large limit for export
+    })
+
+    return items
+  }
+
+  // Get knowledge analytics
   async getKnowledgeAnalytics(): Promise<{
     totalItems: number
     verifiedItems: number
-    categoriesCount: Record<string, number>
-    recentUpdates: number
+    categoryCounts: Record<string, number>
+    languageCounts: Record<string, number>
+    recentlyUpdated: number
   }> {
     try {
-      const items = await this.getKnowledgeItems()
+      const { data, error } = await this.supabase.rpc("get_knowledge_analytics")
 
-      const analytics = {
-        totalItems: items.length,
-        verifiedItems: items.filter((item) => item.verified).length,
-        categoriesCount: items.reduce(
-          (acc, item) => {
-            acc[item.category] = (acc[item.category] || 0) + 1
-            return acc
-          },
-          {} as Record<string, number>,
-        ),
-        recentUpdates: items.filter((item) => {
-          const weekAgo = new Date()
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          return item.lastUpdated > weekAgo
-        }).length,
-      }
-
-      return analytics
-    } catch (error) {
-      console.error("Error getting knowledge analytics:", error)
-      return {
-        totalItems: 0,
-        verifiedItems: 0,
-        categoriesCount: {},
-        recentUpdates: 0,
-      }
-    }
-  }
-
-  // Validation and Quality Control
-  async validateKnowledgeItem(item: Partial<KnowledgeItem>): Promise<{
-    valid: boolean
-    errors: string[]
-    warnings: string[]
-  }> {
-    const errors: string[] = []
-    const warnings: string[] = []
-
-    // Required fields validation
-    if (!item.title || item.title.trim().length < 3) {
-      errors.push("العنوان مطلوب ويجب أن يكون 3 أحرف على الأقل")
-    }
-
-    if (!item.content || item.content.trim().length < 10) {
-      errors.push("المحتوى مطلوب ويجب أن يكون 10 أحرف على الأقل")
-    }
-
-    if (!item.category || item.category.trim().length < 2) {
-      errors.push("الفئة مطلوبة")
-    }
-
-    // Content quality checks
-    if ((item.content && item.content.includes("$")) || item.content?.includes("USD")) {
-      warnings.push("المحتوى يحتوي على أسعار - تأكد من دقتها وحداثتها")
-    }
-
-    if (item.content && item.content.length > 2000) {
-      warnings.push("المحتوى طويل جداً - فكر في تقسيمه")
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-    }
-  }
-
-  // Backup and Export
-  async exportKnowledgeBase(): Promise<string> {
-    try {
-      const items = await this.getKnowledgeItems()
-      return JSON.stringify(
-        {
-          exportDate: new Date().toISOString(),
-          version: "1.0",
-          items,
-        },
-        null,
-        2,
-      )
-    } catch (error) {
-      console.error("Error exporting knowledge base:", error)
-      return ""
-    }
-  }
-
-  async importKnowledgeBase(jsonData: string): Promise<{
-    success: boolean
-    imported: number
-    errors: string[]
-  }> {
-    try {
-      const data = JSON.parse(jsonData)
-      const items = data.items || []
-
-      let imported = 0
-      const errors: string[] = []
-
-      for (const item of items) {
-        const validation = await this.validateKnowledgeItem(item)
-
-        if (validation.valid) {
-          const id = await this.addKnowledgeItem(item)
-          if (id) {
-            imported++
-          } else {
-            errors.push(`فشل في إضافة العنصر: ${item.title}`)
-          }
-        } else {
-          errors.push(`عنصر غير صالح: ${item.title} - ${validation.errors.join(", ")}`)
+      if (error) {
+        console.error("Error fetching knowledge analytics:", error)
+        return {
+          totalItems: 0,
+          verifiedItems: 0,
+          categoryCounts: {},
+          languageCounts: {},
+          recentlyUpdated: 0,
         }
       }
 
-      return {
-        success: imported > 0,
-        imported,
-        errors,
-      }
+      return data
     } catch (error) {
-      console.error("Error importing knowledge base:", error)
+      console.error("Error fetching knowledge analytics:", error)
       return {
-        success: false,
-        imported: 0,
-        errors: ["خطأ في تحليل البيانات المستوردة"],
+        totalItems: 0,
+        verifiedItems: 0,
+        categoryCounts: {},
+        languageCounts: {},
+        recentlyUpdated: 0,
       }
     }
   }
