@@ -46,15 +46,15 @@ class GroqAIService {
     // Check for Arabic characters
     const arabicRegex = /[\u0600-\u06FF]/
     const hasArabic = arabicRegex.test(text)
-    
+
     // Check for English words
     const englishWords = text.toLowerCase().match(/\b[a-z]+\b/g) || []
     const hasEnglish = englishWords.length > 0
-    
+
     // If more than 50% Arabic characters, it's Arabic
     if (hasArabic && !hasEnglish) return "ar"
     if (hasEnglish && !hasArabic) return "en"
-    
+
     // Mixed or unclear - default to Arabic
     return "ar"
   }
@@ -62,9 +62,10 @@ class GroqAIService {
   async generateResponse(userMessage: string): Promise<string> {
     try {
       const detectedLanguage = this.detectLanguage(userMessage)
-      
-      const systemPrompt = detectedLanguage === "en" ? 
-        `You are an AI assistant for Ruyaa Capital, a company specializing in AI agent development and artificial intelligence solutions.
+
+      const systemPrompt =
+        detectedLanguage === "en"
+          ? `You are an AI assistant for Ruyaa Capital, a company specializing in AI agent development and artificial intelligence solutions.
 
 Company Information:
 - Company Name: Ruyaa Capital
@@ -105,9 +106,8 @@ Important Instructions:
 - This is a separate demo website
 - Do not mention phone numbers - there's a WhatsApp button for contact
 - Think carefully before responding and analyze what the user wants
-- Provide practical and realistic examples` :
-
-        `أنت مساعد ذكي متقدم لشركة رؤيا كابيتال المتخصصة في تطوير الوكلاء الذكيين وحلول الذكاء الاصطناعي.
+- Provide practical and realistic examples`
+          : `أنت مساعد ذكي متقدم لشركة رؤيا كابيتال المتخصصة في تطوير الوكلاء الذكيين وحلول الذكاء الاصطناعي.
 
 معلومات الشركة:
 - اسم الشركة: رؤيا كابيتال (Ruyaa Capital)
@@ -158,9 +158,12 @@ Important Instructions:
         temperature: 0.4,
       })
 
-      return text || (detectedLanguage === "en" ? 
-        "I apologize, I couldn't process your request. Please contact us at admin@ruyaacapital.com" :
-        "أعتذر، لم أتمكن من معالجة طلبك. يرجى التواصل معنا على admin@ruyaacapital.com")
+      return (
+        text ||
+        (detectedLanguage === "en"
+          ? "I apologize, I couldn't process your request. Please contact us at admin@ruyaacapital.com"
+          : "أعتذر، لم أتمكن من معالجة طلبك. يرجى التواصل معنا على admin@ruyaacapital.com")
+      )
     } catch (error) {
       console.error("Error generating response:", error)
       throw new Error("Failed to generate AI response")

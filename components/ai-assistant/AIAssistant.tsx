@@ -1,13 +1,14 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { Send, Maximize2, Minimize2, X, Bot, User } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { groqService } from "@/lib/ai/groq-service"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/lib/auth/auth-context"
+import { Send, Maximize2, Minimize2, X, Bot, User } from "lucide-react"
 
 interface Message {
   id: string
@@ -65,15 +66,15 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
     if (!user) return
 
     try {
-      await supabase.from('ai_interactions').insert({
+      await supabase.from("ai_interactions").insert({
         user_id: user.id,
         message: userMessage,
         response: aiResponse,
         timestamp: new Date().toISOString(),
-        agent_type: 'ai_assistant'
+        agent_type: "ai_assistant",
       })
     } catch (error) {
-      console.warn('Failed to log interaction:', error)
+      console.warn("Failed to log interaction:", error)
     }
   }
 
@@ -103,10 +104,9 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
       }
 
       setMessages((prev) => [...prev, assistantMessage])
-      
+
       // Log to Supabase
       await logInteraction(messageContent, response)
-
     } catch (error) {
       console.error("Error generating response:", error)
 
@@ -153,4 +153,106 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
               <h3 className="text-white font-bold text-lg whitespace-nowrap">مساعد رؤيا الذكي</h3>
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-2 h-2 rounded-full bg-white" />
-                <span className="
+                <span className="text-white text-sm whitespace-nowrap">متصل ومتاح</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
+            >
+              {isMinimized ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {!isMinimized && (
+          <>
+            {/* Messages */}
+            <div className="h-[400px] p-4 overflow-auto">
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                        message.role === "user"
+                          ? "bg-white text-black border-2 border-gray-200"
+                          : "bg-gray-800 text-white border-2 border-gray-600"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {message.role === "assistant" && <Bot className="w-4 h-4 mt-1 flex-shrink-0" />}
+                        {message.role === "user" && <User className="w-4 h-4 mt-1 flex-shrink-0" />}
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-800 text-white border-2 border-gray-600 rounded-2xl px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4" />
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                          <div
+                            className="w-2 h-2 bg-white rounded-full animate-bounce"
+                            style={{ animationDelay: "0.1s" }}
+                          />
+                          <div
+                            className="w-2 h-2 bg-white rounded-full animate-bounce"
+                            style={{ animationDelay: "0.2s" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input */}
+            <div className="min-h-[140px] p-4 border-t-2 border-white">
+              <div className="flex gap-2">
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="اكتب رسالتك هنا..."
+                  className="flex-1 bg-gray-900 border-2 border-gray-600 text-white placeholder-gray-400 rounded-full px-4 py-3 focus:border-white focus:ring-0"
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  className="w-12 h-12 bg-white text-black hover:bg-gray-200 rounded-full flex-shrink-0 disabled:opacity-50"
+                >
+                  <Send className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="mt-3 text-center">
+                <p className="text-gray-400 text-xs">
+                  للتواصل المباشر:
+                  <span className="text-white font-medium"> admin@ruyaacapital.com</span>
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
