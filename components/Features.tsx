@@ -1,39 +1,70 @@
 "use client"
 
 import { useLanguage } from "@/contexts/LanguageContext"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function Features() {
-  const { language, translations } = useLanguage()
+export default function Features() {
+  const { t, isRTL } = useLanguage()
 
   const features = [
     {
-      title: translations.features.aiAssistant.title,
-      description: translations.features.aiAssistant.description,
-      benefits: [
+      title: t("features.aiAssistant.title"),
+      description: t("features.aiAssistant.description"),
+      details: [
         "24/7 automated customer support",
-        "Intelligent conversation handling",
-        "Multi-language support",
-        "Seamless integration with existing systems",
+        "Multi-language conversation handling",
+        "Intelligent response generation",
+        "Customer inquiry routing",
       ],
     },
     {
-      title: translations.features.smartAnalytics.title,
-      description: translations.features.smartAnalytics.description,
-      benefits: [
-        "Real-time business insights",
-        "Predictive analytics and forecasting",
-        "Custom dashboard creation",
-        "Data-driven decision making",
+      title: t("features.appointmentScheduling.title"),
+      description: t("features.appointmentScheduling.description"),
+      details: [
+        "Automated appointment booking",
+        "Calendar integration",
+        "Reminder notifications",
+        "Rescheduling management",
       ],
     },
     {
-      title: translations.features.automation.title,
-      description: translations.features.automation.description,
-      benefits: [
+      title: t("features.salesAutomation.title"),
+      description: t("features.salesAutomation.description"),
+      details: [
+        "Lead qualification and scoring",
+        "Automated follow-up sequences",
+        "Sales pipeline management",
+        "Performance analytics",
+      ],
+    },
+    {
+      title: t("features.analytics.title"),
+      description: t("features.analytics.description"),
+      details: [
+        "Real-time performance metrics",
+        "Customer interaction insights",
+        "Conversion rate tracking",
+        "Custom reporting dashboards",
+      ],
+    },
+    {
+      title: t("features.integration.title"),
+      description: t("features.integration.description"),
+      details: [
+        "CRM system integration",
+        "Email marketing platforms",
+        "Social media management",
+        "Third-party API connections",
+      ],
+    },
+    {
+      title: t("features.customization.title"),
+      description: t("features.customization.description"),
+      details: [
+        "Tailored AI responses",
+        "Brand voice customization",
         "Workflow automation",
-        "Task scheduling and management",
-        "Process optimization",
-        "Reduced manual workload",
+        "Custom feature development",
       ],
     },
   ]
@@ -42,32 +73,38 @@ export function Features() {
     <section className="py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 text-shadow-lg">
-            {translations.features.title}
+          <h2 className={`text-3xl sm:text-4xl font-bold text-white mb-4 text-shadow-lg ${isRTL ? "font-arabic" : ""}`}>
+            {t("features.title")}
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto text-shadow">{translations.features.subtitle}</p>
+          <p className={`text-xl text-gray-300 text-shadow max-w-3xl mx-auto ${isRTL ? "font-arabic" : ""}`}>
+            {t("features.subtitle")}
+          </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <div
+            <Card
               key={index}
-              className="content-card rounded-xl p-8 floating-card"
-              style={{ animationDelay: `${index * 0.2}s` }}
+              className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300"
             >
-              <div className="space-y-6">
-                <h3 className="text-2xl font-bold text-white text-shadow">{feature.title}</h3>
-                <p className="text-gray-300 text-shadow">{feature.description}</p>
-                <ul className="space-y-3">
-                  {feature.benefits.map((benefit, benefitIndex) => (
-                    <li key={benefitIndex} className="flex items-start space-x-3">
-                      <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
-                      <span className="text-gray-300 text-shadow">{benefit}</span>
+              <CardHeader>
+                <CardTitle className={`text-white text-xl ${isRTL ? "font-arabic text-right" : ""}`}>
+                  {feature.title}
+                </CardTitle>
+                <CardDescription className={`text-gray-300 ${isRTL ? "font-arabic text-right" : ""}`}>
+                  {feature.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className={`space-y-2 ${isRTL ? "text-right" : ""}`}>
+                  {feature.details.map((detail, detailIndex) => (
+                    <li key={detailIndex} className="text-gray-300 text-sm flex items-start">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0" />
+                      {detail}
                     </li>
                   ))}
                 </ul>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

@@ -3,51 +3,55 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { AuthModal } from "@/components/auth/AuthModal"
+import { useAuth } from "@/lib/auth/auth-context"
+import AuthModal from "@/components/auth/AuthModal"
 
-export function Hero() {
-  const { language, translations } = useLanguage()
-  const [showAuthModal, setShowAuthModal] = useState(false)
+export default function Hero() {
+  const { t, isRTL } = useLanguage()
+  const { user } = useAuth()
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto text-center">
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white text-shadow-lg">
-              {translations.hero.title}
-            </h1>
-            <p className="text-xl sm:text-2xl md:text-3xl text-gray-200 max-w-4xl mx-auto text-shadow">
-              {translations.hero.subtitle}
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto text-shadow">
-              {translations.hero.description}
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <div className="absolute inset-0 bg-black/20" />
+      <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <h1
+          className={`text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white text-shadow-lg ${isRTL ? "font-arabic" : ""}`}
+        >
+          {t("hero.title")}
+        </h1>
+        <p
+          className={`text-xl sm:text-2xl mb-8 text-gray-200 text-shadow max-w-3xl mx-auto ${isRTL ? "font-arabic" : ""}`}
+        >
+          {t("hero.subtitle")}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          {!user ? (
+            <>
               <Button
+                variant="primary"
                 size="lg"
-                className="btn-3d bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 text-lg font-semibold shadow-xl"
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-lg px-8 py-3 min-w-[200px]"
               >
-                {translations.hero.cta}
+                {t("hero.getStarted")}
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="btn-3d border-white text-white hover:bg-white hover:text-slate-900 px-8 py-3 text-lg font-semibold shadow-xl bg-transparent"
+                className="text-lg px-8 py-3 min-w-[200px] bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
-                {translations.hero.learnMore}
+                {t("hero.learnMore")}
               </Button>
-            </div>
-          </div>
+            </>
+          ) : (
+            <Button variant="primary" size="lg" className="text-lg px-8 py-3 min-w-[200px]">
+              {t("hero.dashboard")}
+            </Button>
+          )}
         </div>
       </div>
-
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </section>
   )
 }
