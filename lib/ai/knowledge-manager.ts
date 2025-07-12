@@ -31,16 +31,35 @@ interface AnalyticsData {
 
 export class KnowledgeManager {
   private supabase = createClient()
+  private tableExists: boolean | null = null
 
   // Check if knowledge base table exists
   private async checkTableExists(): Promise<boolean> {
-    try {
-      const { error } = await this.supabase.from("knowledge_base").select("id").limit(1).single()
+    if (this.tableExists !== null) {
+      return this.tableExists
+    }
 
-      // If error is null or it's just "no rows" error, table exists
-      return error === null || error.code === "PGRST116"
+    try {
+      const { data, error } = await this.supabase.from("knowledge_base").select("id").limit(1)
+
+      if (error) {
+        // Check if error is specifically about table not existing
+        if (error.code === "42P01" || error.message.includes("does not exist")) {
+          console.warn("Knowledge base table does not exist")
+          this.tableExists = false
+          return false
+        }
+        // Other errors might still mean table exists but has other issues
+        console.warn("Error checking knowledge base table:", error)
+        this.tableExists = true
+        return true
+      }
+
+      this.tableExists = true
+      return true
     } catch (error) {
-      console.warn("Knowledge base table does not exist yet")
+      console.warn("Failed to check knowledge base table existence:", error)
+      this.tableExists = false
       return false
     }
   }
@@ -50,15 +69,15 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        console.warn("Knowledge base table not found, returning empty results")
+        console.warn("Knowledge base table does not exist, returning empty results")
         return []
       }
 
       let queryBuilder = this.supabase.from("knowledge_base").select("*")
 
       // Add text search if query is provided
-      if (query && query.trim()) {
-        queryBuilder = queryBuilder.textSearch("content", query)
+      if (query.trim()) {
+        queryBuilder = queryBuilder.or(`content.ilike.%${query}%,title.ilike.%${query}%`)
       }
 
       if (options.category) {
@@ -95,7 +114,7 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        console.warn("Knowledge base table not found, returning empty results")
+        console.warn("Knowledge base table does not exist, returning empty results")
         return []
       }
 
@@ -135,7 +154,7 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        console.error("Knowledge base table not found, cannot create item")
+        console.error("Cannot create knowledge item: table does not exist")
         return null
       }
 
@@ -171,7 +190,7 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        console.error("Knowledge base table not found, cannot update item")
+        console.error("Cannot update knowledge item: table does not exist")
         return false
       }
 
@@ -206,7 +225,7 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        console.error("Knowledge base table not found, cannot delete item")
+        console.error("Cannot delete knowledge item: table does not exist")
         return false
       }
 
@@ -229,7 +248,7 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        console.warn("Knowledge base table not found")
+        console.warn("Cannot get knowledge item: table does not exist")
         return null
       }
 
@@ -329,7 +348,7 @@ export class KnowledgeManager {
 
     const tableExists = await this.checkTableExists()
     if (!tableExists) {
-      results.errors.push("Knowledge base table not found")
+      results.errors.push("Knowledge base table does not exist")
       results.failed = items.length
       return results
     }
@@ -367,21 +386,21 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        return []
+        return ["services", "technology", "company", "benefits"]
       }
 
       const { data, error } = await this.supabase.from("knowledge_base").select("category").order("category")
 
       if (error) {
         console.error("Error fetching categories:", error)
-        return []
+        return ["services", "technology", "company", "benefits"]
       }
 
       const categories = [...new Set(data?.map((item) => item.category) || [])]
       return categories.filter(Boolean)
     } catch (error) {
       console.error("Error in getCategories:", error)
-      return []
+      return ["services", "technology", "company", "benefits"]
     }
   }
 
@@ -390,70 +409,32 @@ export class KnowledgeManager {
     try {
       const tableExists = await this.checkTableExists()
       if (!tableExists) {
-        return []
+        return ["arabic", "english"]
       }
 
       const { data, error } = await this.supabase.from("knowledge_base").select("language").order("language")
 
       if (error) {
         console.error("Error fetching languages:", error)
-        return []
+        return ["arabic", "english"]
       }
 
       const languages = [...new Set(data?.map((item) => item.language) || [])]
       return languages.filter(Boolean)
     } catch (error) {
       console.error("Error in getLanguages:", error)
-      return []
+      return ["arabic", "english"]
     }
   }
 
-  // Initialize knowledge base with default data
-  async initializeKnowledgeBase(): Promise<boolean> {
-    try {
-      const tableExists = await this.checkTableExists()
-      if (!tableExists) {
-        console.error("Knowledge base table not found, cannot initialize")
-        return false
-      }
+  // Check if knowledge base is available
+  async isAvailable(): Promise<boolean> {
+    return await this.checkTableExists()
+  }
 
-      // Check if we already have data
-      const existingItems = await this.getKnowledgeItems({ limit: 1 })
-      if (existingItems.length > 0) {
-        console.log("Knowledge base already has data, skipping initialization")
-        return true
-      }
-
-      // Add default knowledge items
-      const defaultItems = [
-        {
-          title: "خدمات رؤيا كابيتال",
-          content:
-            "رؤيا كابيتال شركة متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي. نقدم خدمات شاملة تشمل: وكلاء الدعم الذكي، أتمتة المبيعات، إدارة وسائل التواصل الاجتماعي، والحلول المخصصة حسب احتياجات العميل.",
-          category: "services",
-          language: "arabic",
-          tags: ["خدمات", "وكلاء ذكيين", "ذكاء اصطناعي"],
-          isVerified: true,
-        },
-        {
-          title: "Ruyaa Capital Services",
-          content:
-            "Ruyaa Capital is a company specialized in developing intelligent agent solutions and artificial intelligence. We provide comprehensive services including: intelligent support agents, sales automation, social media management, and customized solutions according to client needs.",
-          category: "services",
-          language: "english",
-          tags: ["services", "intelligent agents", "artificial intelligence"],
-          isVerified: true,
-        },
-      ]
-
-      const results = await this.bulkImport(defaultItems)
-      console.log(`Knowledge base initialized: ${results.success} items added, ${results.failed} failed`)
-
-      return results.success > 0
-    } catch (error) {
-      console.error("Error initializing knowledge base:", error)
-      return false
-    }
+  // Reset table existence cache
+  resetCache(): void {
+    this.tableExists = null
   }
 
   // Private helper method to map database row to KnowledgeItem

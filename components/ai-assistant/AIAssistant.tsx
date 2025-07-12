@@ -1,90 +1,63 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect, useCallback } from "react"
-import { motion } from "framer-motion"
-import { Wifi, WifiOff, Loader2, MessageCircle, Database, Activity, Play } from "lucide-react"
+
+import { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Send, Loader2, Copy, RotateCcw, Database, Wifi, WifiOff, AlertCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useAuth } from "@/lib/auth/auth-context"
-import { useLanguage } from "@/contexts/LanguageContext"
-import { createClient } from "@/lib/supabase/client"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
-import { groqAI } from "@/lib/ai/groq-service"
+import { groqService } from "@/lib/ai/groq-service"
 import { knowledgeManager } from "@/lib/ai/knowledge-manager"
+import KnowledgeManager from "./KnowledgeManager"
 
 interface Message {
   id: string
   content: string
   role: "user" | "assistant"
   timestamp: Date
-  status?: "sending" | "sent" | "error"
-  language?: "ar" | "en"
-  metadata?: {
-    responseTime?: number
-    confidence?: number
-    sources?: string[]
-    requiresHumanFollowup?: boolean
-    contextUnderstanding?: number
-    detectedLanguage?: "ar" | "en"
-  }
+  language?: "arabic" | "english"
+  confidence?: number
+  sources?: string[]
+  responseTime?: number
+  detectedLanguage?: "ar" | "en"
+  contextUnderstanding?: number
 }
 
-interface AIAssistantProps {
-  isOpen: boolean
-  onToggle: () => void
-}
-
-interface APIStatus {
+interface ConnectionStatus {
   status: "online" | "offline" | "degraded"
   responseTime: number
   lastChecked: Date
 }
 
-export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
-  const { user, profile } = useAuth()
-  const { t, isRTL } = useLanguage()
+interface AIAssistantProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [apiStatus, setApiStatus] = useState<APIStatus>({
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     status: "online",
     responseTime: 0,
     lastChecked: new Date(),
   })
-  const [error, setError] = useState<string | null>(null)
-  const [isTyping, setIsTyping] = useState(false)
-  const [showScrollButton, setShowScrollButton] = useState(false)
-  const [sessionId, setSessionId] = useState<string>("")
   const [isKnowledgeManagerOpen, setIsKnowledgeManagerOpen] = useState(false)
-  const [conversationLanguage, setConversationLanguage] = useState<"ar" | "en">("ar")
+  const [knowledgeBaseStatus, setKnowledgeBaseStatus] = useState<"loading" | "available" | "unavailable">("loading")
   const [knowledgeItems, setKnowledgeItems] = useState<any[]>([])
-  const [isInitializing, setIsInitializing] = useState(false)
-  const [conversationContext, setConversationContext] = useState({
-    previousTopics: [] as string[],
-    userPreferences: {},
-    sessionDuration: 0,
-    messageCount: 0,
-  })
-
+  const [conversationLanguage, setConversationLanguage] = useState<"ar" | "en">("ar")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
-  const sessionStartTime = useRef<number>(Date.now())
-
-  const [deviceInfo, setDeviceInfo] = useState({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: false,
-    screenWidth: 0,
-    screenHeight: 0,
-    touchSupported: false,
-  })
 
   // Language detection function
-  const detectLanguage = useCallback((text: string): "ar" | "en" => {
+  const detectLanguage = (text: string): "ar" | "en" => {
     const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/
     const englishPattern = /[a-zA-Z]/
 
@@ -116,42 +89,29 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     const englishWordCount = englishWords.filter((word) => lowerText.includes(word)).length
 
     return arabicWordCount > englishWordCount ? "ar" : "en"
+  }
+
+  // Check knowledge base availability
+  useEffect(() => {
+    checkKnowledgeBaseStatus()
   }, [])
 
-  // Device detection
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    const detectDevice = () => {
-      const userAgent = navigator.userAgent.toLowerCase()
-      const isMobile =
-        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || window.innerWidth <= 768
-      const isTablet =
-        /ipad|android(?!.*mobile)/i.test(userAgent) || (window.innerWidth > 768 && window.innerWidth <= 1024)
-      const touchSupported = "ontouchstart" in window || navigator.maxTouchPoints > 0
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
-      setDeviceInfo({
-        isMobile,
-        isTablet,
-        isDesktop: !isMobile && !isTablet,
-        screenWidth: window.innerWidth,
-        screenHeight: window.innerHeight,
-        touchSupported,
-      })
-    }
-
-    detectDevice()
-    window.addEventListener("resize", detectDevice)
-    return () => window.removeEventListener("resize", detectDevice)
-  }, [])
-
-  // API Status monitoring
+  // Check API health periodically
   useEffect(() => {
-    const checkAPIStatus = async () => {
+    const checkHealth = async () => {
       try {
-        const status = await groqAI.getAPIStatus()
-        setApiStatus(status)
+        const health = await groqService.checkHealth()
+        setConnectionStatus({
+          ...health,
+          lastChecked: new Date(),
+        })
       } catch (error) {
-        console.error("Failed to check API status:", error)
-        setApiStatus({
+        setConnectionStatus({
           status: "offline",
           responseTime: 0,
           lastChecked: new Date(),
@@ -160,101 +120,20 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
     }
 
     if (isOpen) {
-      checkAPIStatus()
-      const interval = setInterval(checkAPIStatus, 30000) // Check every 30 seconds
+      checkHealth()
+      const interval = setInterval(checkHealth, 30000) // Check every 30 seconds
       return () => clearInterval(interval)
     }
   }, [isOpen])
 
-  // Initialize knowledge base
-  const initializeKnowledgeBase = useCallback(async () => {
-    setIsInitializing(true)
-    try {
-      console.log("Initializing knowledge base...")
-      const success = await knowledgeManager.initializeKnowledgeBase()
-      if (success) {
-        console.log("Knowledge base initialized successfully")
-        toast.success("Knowledge base initialized")
-      } else {
-        console.log("Knowledge base initialization skipped or failed")
-      }
-    } catch (error) {
-      console.error("Failed to initialize knowledge base:", error)
-      toast.error("Failed to initialize knowledge base")
-    } finally {
-      setIsInitializing(false)
-    }
-  }, [])
-
-  // Load knowledge base
+  // Focus input when opened
   useEffect(() => {
-    const loadKnowledgeBase = async () => {
-      try {
-        console.log("Loading knowledge base...")
-        const items = await knowledgeManager.getKnowledgeItems({
-          verified: true,
-          limit: 50,
-        })
-        console.log(`Loaded ${items.length} knowledge items`)
-        setKnowledgeItems(items)
-        
-        // If no items found, try to initialize
-        if (items.length === 0) {
-          console.log("No knowledge items found, attempting to initialize...")
-          await initializeKnowledgeBase()
-          
-          // Try loading again after initialization
-          const newItems = await knowledgeManager.getKnowledgeItems({
-            verified: true,
-            limit: 50,
-          })
-          setKnowledgeItems(newItems)
-        }
-      } catch (error) {
-        console.error("Failed to load knowledge base:", error)
-        setKnowledgeItems([])
-      }
-    }
-
     if (isOpen) {
-      loadKnowledgeBase()
+      setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [isOpen, initializeKnowledgeBase])
+  }, [isOpen])
 
-  // Session management
-  useEffect(() => {
-    if (isOpen && !sessionId) {
-      const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      setSessionId(newSessionId)
-      sessionStartTime.current = Date.now()
-    }
-  }, [isOpen, sessionId])
-
-  // Update conversation context
-  useEffect(() => {
-    setConversationContext((prev) => ({
-      ...prev,
-      sessionDuration: Date.now() - sessionStartTime.current,
-      messageCount: messages.length,
-    }))
-  }, [messages.length])
-
-  // Scroll management
-  useEffect(() => {
-    const container = messagesContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-      setShowScrollButton(!isNearBottom && messages.length > 3)
-    }
-
-    container.addEventListener("scroll", handleScroll)
-    return () => container.removeEventListener("scroll", handleScroll)
-  }, [messages.length])
-
-  // Welcome message
+  // Load welcome message
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
@@ -281,41 +160,37 @@ I can help you with:
 How can I help you today?`,
         role: "assistant",
         timestamp: new Date(),
-        status: "sent",
-        language: conversationLanguage,
-        metadata: {
-          confidence: 1.0,
-          sources: ["welcome"],
-          requiresHumanFollowup: false,
-          contextUnderstanding: 1.0,
-          detectedLanguage: conversationLanguage,
-        },
+        language: conversationLanguage === "ar" ? "arabic" : "english",
+        confidence: 1.0,
+        detectedLanguage: conversationLanguage,
+        contextUnderstanding: 1.0,
       }
 
       setMessages([welcomeMessage])
     }
   }, [isOpen, conversationLanguage])
 
-  const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+  const checkKnowledgeBaseStatus = async () => {
+    try {
+      setKnowledgeBaseStatus("loading")
+      const isAvailable = await knowledgeManager.isAvailable()
+
+      if (isAvailable) {
+        const items = await knowledgeManager.getKnowledgeItems({ verified: true, limit: 50 })
+        setKnowledgeItems(items)
+        setKnowledgeBaseStatus("available")
+      } else {
+        setKnowledgeBaseStatus("unavailable")
+        setKnowledgeItems([])
+      }
+    } catch (error) {
+      console.warn("Knowledge base check failed:", error)
+      setKnowledgeBaseStatus("unavailable")
+      setKnowledgeItems([])
     }
-  }, [])
+  }
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, scrollToBottom])
-
-  // Focus input when opened
-  useEffect(() => {
-    if (isOpen && !isMinimized && !deviceInfo.isMobile && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 300)
-    }
-  }, [isOpen, isMinimized, deviceInfo.isMobile])
-
-  const handleSendMessage = useCallback(async () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
 
     const messageContent = inputValue.trim()
@@ -326,26 +201,19 @@ How can I help you today?`,
       setConversationLanguage(detectedLang)
     }
 
-    setInputValue("")
-    setError(null)
-
     const userMessage: Message = {
       id: Date.now().toString(),
       content: messageContent,
       role: "user",
       timestamp: new Date(),
-      status: "sending",
-      language: detectedLang,
+      detectedLanguage: detectedLang,
     }
 
     setMessages((prev) => [...prev, userMessage])
+    setInputValue("")
     setIsLoading(true)
-    setIsTyping(true)
 
     try {
-      // Update message status to sent
-      setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "sent" } : msg)))
-
       // Prepare conversation history
       const conversationHistory = [...messages, userMessage].map((msg) => ({
         role: msg.role as "user" | "assistant",
@@ -354,251 +222,123 @@ How can I help you today?`,
         language: msg.language,
       }))
 
-      // Filter knowledge base by detected language
-      const relevantKnowledge = knowledgeItems.filter((item) => item.language === detectedLang && item.isVerified)
-
-      console.log(`Making real-time API call for ${detectedLang} message with ${relevantKnowledge.length} knowledge items...`)
+      console.log(`Making real-time API call for ${detectedLang} message...`)
 
       // Make real-time API call
-      const aiResponse = await groqAI.generateResponse(conversationHistory, relevantKnowledge, {
-        userId: user?.id,
-        sessionId,
-        deviceInfo,
+      const response = await groqService.generateResponse(conversationHistory, knowledgeItems, {
         timestamp: new Date().toISOString(),
         conversationContext: {
-          ...conversationContext,
-          previousTopics: conversationContext.previousTopics,
+          previousTopics: [],
           userPreferences: {},
-          sessionDuration: Date.now() - sessionStartTime.current,
+          sessionDuration: Date.now(),
           messageCount: messages.length + 1,
         },
       })
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: aiResponse.content,
+        content: response.content,
         role: "assistant",
         timestamp: new Date(),
-        status: "sent",
-        language: aiResponse.detectedLanguage,
-        metadata: {
-          responseTime: aiResponse.responseTime,
-          confidence: aiResponse.confidence,
-          sources: aiResponse.sources,
-          requiresHumanFollowup: aiResponse.requiresHumanFollowup,
-          contextUnderstanding: aiResponse.contextUnderstanding,
-          detectedLanguage: aiResponse.detectedLanguage,
-        },
+        language: response.language,
+        confidence: response.confidence,
+        sources: response.sources,
+        responseTime: response.responseTime,
+        detectedLanguage: response.detectedLanguage,
+        contextUnderstanding: response.contextUnderstanding,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
 
-      // Log interaction to database
-      if (user && profile) {
-        try {
-          await supabase.from("agent_interactions").insert({
-            user_id: user.id,
-            session_id: sessionId,
-            message_type: "chat",
-            user_message: messageContent,
-            ai_response: aiResponse.content,
-            response_time: aiResponse.responseTime,
-            confidence_score: aiResponse.confidence,
-            metadata: {
-              sources: aiResponse.sources,
-              requiresHumanFollowup: aiResponse.requiresHumanFollowup,
-              contextUnderstanding: aiResponse.contextUnderstanding,
-              detectedLanguage: aiResponse.detectedLanguage,
-              deviceInfo,
-            },
-          })
-        } catch (dbError) {
-          console.error("Error logging interaction:", dbError)
-        }
-      }
-
-      // Show notification if human followup is needed
-      if (aiResponse.requiresHumanFollowup) {
-        toast.info(
-          detectedLang === "ar"
-            ? "للحصول على معلومات أكثر دقة، يُنصح بالتواصل المباشر"
-            : "For more accurate information, direct contact is recommended",
+      // Show warning if confidence is low
+      if (response.confidence < 0.5) {
+        toast.warning(
+          response.detectedLanguage === "ar"
+            ? "قد تحتاج هذه المعلومة إلى تأكيد إضافي"
+            : "This information may need additional confirmation",
         )
       }
+
+      // Suggest human followup if needed
+      if (response.needsHumanFollowup) {
+        setTimeout(() => {
+          toast.info(
+            response.detectedLanguage === "ar"
+              ? "للحصول على مساعدة شخصية، يرجى التواصل مع فريقنا"
+              : "For personalized assistance, please contact our team",
+          )
+        }, 2000)
+      }
     } catch (error) {
-      console.error("Error in real-time API call:", error)
-      setError(
-        detectedLang === "ar"
-          ? "حدث خطأ في الاتصال بالخدمة. يرجى المحاولة مرة أخرى."
-          : "Connection error occurred. Please try again.",
-      )
+      console.error("Error sending message:", error)
 
-      // Update user message status to error
-      setMessages((prev) => prev.map((msg) => (msg.id === userMessage.id ? { ...msg, status: "error" } : msg)))
-
-      // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content:
           detectedLang === "ar"
-            ? `عذراً، حدث خطأ في الاتصال مع الخدمة.
-
-يمكنك:
-• المحاولة مرة أخرى
-• تحديث قاعدة المعرفة إذا كانت المعلومات غير دقيقة
-• التواصل المباشر للحصول على المساعدة`
-            : `Sorry, a connection error occurred with the service.
-
-You can:
-• Try again
-• Update the knowledge base if information is inaccurate  
-• Contact directly for assistance`,
+            ? "عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى."
+            : "Sorry, there was a connection error. Please try again.",
         role: "assistant",
         timestamp: new Date(),
-        status: "sent",
-        language: detectedLang,
-        metadata: {
-          confidence: 1.0,
-          sources: ["error_fallback"],
-          requiresHumanFollowup: true,
-          contextUnderstanding: 0.5,
-          detectedLanguage: detectedLang,
-        },
+        detectedLanguage: detectedLang,
+        confidence: 0.1,
       }
 
       setMessages((prev) => [...prev, errorMessage])
+      toast.error(detectedLang === "ar" ? "فشل في إرسال الرسالة" : "Failed to send message")
     } finally {
       setIsLoading(false)
-      setIsTyping(false)
     }
-  }, [
-    inputValue,
-    isLoading,
-    messages,
-    user,
-    profile,
-    sessionId,
-    deviceInfo,
-    supabase,
-    detectLanguage,
-    conversationLanguage,
-    knowledgeItems,
-    conversationContext,
-  ])
+  }
 
-  const handleKeyPress = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        handleSendMessage()
-      }
-    },
-    [handleSendMessage],
-  )
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
 
-  const handleClearConversation = useCallback(() => {
-    const confirmText =
+  const copyMessage = (content: string) => {
+    navigator.clipboard.writeText(content)
+    toast.success(conversationLanguage === "ar" ? "تم نسخ الرسالة" : "Message copied")
+  }
+
+  const clearConversation = () => {
+    const confirmMessage =
       conversationLanguage === "ar"
-        ? "هل أنت متأكد من حذف المحادثة؟"
+        ? "هل أنت متأكد من مسح المحادثة؟"
         : "Are you sure you want to clear the conversation?"
 
-    if (confirm(confirmText)) {
+    if (confirm(confirmMessage)) {
       setMessages([])
-      setError(null)
-      setConversationContext({
-        previousTopics: [],
-        userPreferences: {},
-        sessionDuration: 0,
-        messageCount: 0,
-      })
-      sessionStartTime.current = Date.now()
-
-      setTimeout(() => {
-        const welcomeMessage: Message = {
-          id: Date.now().toString(),
-          content:
-            conversationLanguage === "ar" ? "مرحباً مجدداً! كيف يمكنني مساعدتك؟" : "Hello again! How can I help you?",
-          role: "assistant",
-          timestamp: new Date(),
-          status: "sent",
-          language: conversationLanguage,
-          metadata: {
-            confidence: 1.0,
-            sources: ["welcome"],
-            contextUnderstanding: 1.0,
-            detectedLanguage: conversationLanguage,
-          },
-        }
-        setMessages([welcomeMessage])
-      }, 100)
-    }
-  }, [conversationLanguage])
-
-  const handleCopyMessage = useCallback(
-    (content: string) => {
-      navigator.clipboard.writeText(content).then(() => {
-        toast.success(conversationLanguage === "ar" ? "تم نسخ الرسالة" : "Message copied")
-      })
-    },
-    [conversationLanguage],
-  )
-
-  const handleRetryMessage = useCallback(
-    (messageId: string) => {
-      const message = messages.find((msg) => msg.id === messageId)
-      if (message && message.role === "user") {
-        setInputValue(message.content)
-        const messageIndex = messages.findIndex((msg) => msg.id === messageId)
-        setMessages((prev) => prev.slice(0, messageIndex))
-      }
-    },
-    [messages],
-  )
-
-  const formatMessageContent = (content: string) => {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      .replace(/`(.*?)`/g, '<code class="bg-gray-800 text-white px-2 py-1 rounded text-sm">$1</code>')
-      .replace(/\n/g, "<br>")
-  }
-
-  const getStatusText = () => {
-    if (conversationLanguage === "ar") {
-      switch (apiStatus.status) {
-        case "online":
-          return "متصل ومتاح"
-        case "offline":
-          return "غير متصل"
-        case "degraded":
-          return "اتصال بطيء"
-        default:
-          return "غير معروف"
-      }
-    } else {
-      switch (apiStatus.status) {
-        case "online":
-          return "Online & Available"
-        case "offline":
-          return "Offline"
-        case "degraded":
-          return "Slow Connection"
-        default:
-          return "Unknown"
-      }
+      groqService.clearContext()
+      toast.success(conversationLanguage === "ar" ? "تم مسح المحادثة" : "Conversation cleared")
     }
   }
 
-  const getStatusColor = () => {
-    switch (apiStatus.status) {
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus.status) {
       case "online":
-        return "bg-green-500"
-      case "offline":
-        return "bg-red-500"
+        return "text-green-500"
       case "degraded":
-        return "bg-yellow-500"
+        return "text-yellow-500"
+      case "offline":
+        return "text-red-500"
       default:
-        return "bg-gray-500"
+        return "text-gray-500"
+    }
+  }
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus.status) {
+      case "online":
+        return <Wifi className="w-4 h-4" />
+      case "degraded":
+        return <AlertCircle className="w-4 h-4" />
+      case "offline":
+        return <WifiOff className="w-4 h-4" />
+      default:
+        return <Wifi className="w-4 h-4" />
     }
   }
 
@@ -607,84 +347,253 @@ You can:
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className={`fixed ${isRTL ? "left-4" : "right-4"} z-[9999] bg-black rounded-3xl shadow-2xl ${
-          isMinimized
-            ? "w-80 h-16 bottom-4"
-            : deviceInfo.isMobile
-              ? "w-[95vw] h-[90vh] bottom-2"
-              : "w-96 h-[600px] bottom-4"
-        } transition-all duration-300 overflow-hidden border border-gray-800`}
-        style={{
-          maxHeight: deviceInfo.isMobile ? "calc(100vh - 20px)" : "600px",
-          top: deviceInfo.isMobile && !isMinimized ? "5px" : "auto",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)",
-        }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        onClick={onClose}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800 bg-black min-h-[72px]">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                <MessageCircle className="w-6 h-6 text-black" />
+        <Card className="w-full max-w-2xl h-[600px] flex flex-col bg-white" onClick={(e) => e.stopPropagation()}>
+          <CardHeader className="flex-shrink-0 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src="/images/ruyaa-ai-logo.png" alt="Ruyaa AI" />
+                  <AvatarFallback className="bg-blue-100 text-blue-600">AI</AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-lg">
+                    {conversationLanguage === "ar" ? "مساعد رؤيا الذكي" : "Ruyaa AI Assistant"}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className={getConnectionStatusColor()}>{getConnectionStatusIcon()}</span>
+                    <span>
+                      {conversationLanguage === "ar"
+                        ? connectionStatus.status === "online"
+                          ? "متصل ومتاح"
+                          : connectionStatus.status === "degraded"
+                            ? "اتصال بطيء"
+                            : "غير متصل"
+                        : connectionStatus.status === "online"
+                          ? "Online & Available"
+                          : connectionStatus.status === "degraded"
+                            ? "Slow Connection"
+                            : "Offline"}
+                    </span>
+                    {connectionStatus.responseTime > 0 && (
+                      <span className="text-xs">({connectionStatus.responseTime}ms)</span>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {conversationLanguage === "ar" ? "ع" : "EN"}
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              <div
-                className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-black ${getStatusColor()}`}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-lg leading-tight">
-                {conversationLanguage === "ar" ? "مساعد رؤيا الذكي" : "Ruyaa AI Assistant"}
-              </h3>
-              <div className="flex items-center gap-2 text-sm text-gray-300 mt-1">
-                {apiStatus.status === "online" ? (
-                  <Wifi className="w-4 h-4 flex-shrink-0" />
-                ) : apiStatus.status === "degraded" ? (
-                  <Activity className="w-4 h-4 flex-shrink-0" />
-                ) : (
-                  <WifiOff className="w-4 h-4 flex-shrink-0" />
-                )}
-                <span className="whitespace-nowrap">{getStatusText()}</span>
-                <Badge variant="outline" className="text-xs">
-                  {conversationLanguage === "ar" ? "ع" : "EN"}
-                </Badge>
-                {knowledgeItems.length > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    {knowledgeItems.length} KB
-                  </Badge>
-                )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsKnowledgeManagerOpen(true)}
+                  className="p-2"
+                  title={conversationLanguage === "ar" ? "إدارة قاعدة المعرفة" : "Manage Knowledge Base"}
+                >
+                  <Database className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearConversation}
+                  className="p-2"
+                  title={conversationLanguage === "ar" ? "مسح المحادثة" : "Clear conversation"}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={onClose} className="p-2">
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {knowledgeItems.length === 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={initializeKnowledgeBase}
-                disabled={isInitializing}
-                className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
-                title={conversationLanguage === "ar" ? "تهيئة قاعدة المعرفة" : "Initialize Knowledge Base"}
-              >
-                {isInitializing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-              </Button>
+
+            {knowledgeBaseStatus === "unavailable" && (
+              <Alert className="mt-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {conversationLanguage === "ar"
+                    ? "قاعدة المعرفة غير متوفرة. يرجى تشغيل السكريبت لإنشاء الجداول."
+                    : "Knowledge base unavailable. Please run the script to create tables."}
+                </AlertDescription>
+              </Alert>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsKnowledgeManagerOpen(true)}
-              className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
-              title={conversationLanguage === "ar" ? "إدارة قاعدة المعرفة" : "Manage Knowledge Base"}
-            >
-              <Database className="w-5 h-5" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
-            >
-              {isMinim
+
+            {knowledgeBaseStatus === "available" && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
+                <Database className="w-4 h-4" />
+                <span>
+                  {conversationLanguage === "ar"
+                    ? `قاعدة المعرفة متاحة (${knowledgeItems.length} عنصر)`
+                    : `Knowledge base available (${knowledgeItems.length} items)`}
+                </span>
+              </div>
+            )}
+          </CardHeader>
+
+          <CardContent className="flex-1 flex flex-col p-0">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <AnimatePresence>
+                {messages.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center text-gray-500 py-8"
+                  >
+                    <div className="mb-4">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">🤖</span>
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">
+                        {conversationLanguage === "ar"
+                          ? "مرحباً بك في مساعد رؤيا الذكي"
+                          : "Welcome to Ruyaa AI Assistant"}
+                      </h3>
+                      <p className="text-sm">
+                        {conversationLanguage === "ar"
+                          ? "يمكنني مساعدتك في الاستفسار عن خدماتنا وحلول الذكاء الاصطناعي"
+                          : "I can help you inquire about our services and AI solutions"}
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  messages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className={`max-w-[80%] ${message.role === "user" ? "order-2" : "order-1"}`}>
+                        <div
+                          className={`p-3 rounded-lg ${
+                            message.role === "user" ? "bg-blue-500 text-white ml-2" : "bg-gray-100 text-gray-800 mr-2"
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+
+                          {message.role === "assistant" && (
+                            <div className="mt-2 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {message.confidence !== undefined && (
+                                  <Badge
+                                    variant={message.confidence > 0.7 ? "default" : "secondary"}
+                                    className="text-xs"
+                                  >
+                                    {Math.round(message.confidence * 100)}%
+                                  </Badge>
+                                )}
+                                {message.sources && message.sources.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {conversationLanguage === "ar" ? "مصادر" : "Sources"}: {message.sources.length}
+                                  </Badge>
+                                )}
+                                {message.responseTime && (
+                                  <span className="text-xs text-gray-500">{message.responseTime}ms</span>
+                                )}
+                                {message.detectedLanguage && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {message.detectedLanguage === "ar" ? "ع" : "EN"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyMessage(message.content)}
+                                className="p-1 h-auto"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div
+                          className={`text-xs text-gray-500 mt-1 ${
+                            message.role === "user" ? "text-right" : "text-left"
+                          }`}
+                        >
+                          {message.timestamp.toLocaleTimeString(conversationLanguage === "ar" ? "ar-SA" : "en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-gray-100 text-gray-800 p-3 rounded-lg mr-2 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{conversationLanguage === "ar" ? "جاري الكتابة..." : "Typing..."}</span>
+                  </div>
+                </motion.div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="border-t p-4">
+              <div className="flex gap-2">
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={
+                    connectionStatus.status === "offline"
+                      ? conversationLanguage === "ar"
+                        ? "لا يوجد اتصال..."
+                        : "No connection..."
+                      : conversationLanguage === "ar"
+                        ? "اكتب رسالتك هنا..."
+                        : "Type your message here..."
+                  }
+                  disabled={isLoading || connectionStatus.status === "offline"}
+                  className="flex-1"
+                  dir={conversationLanguage === "ar" ? "rtl" : "ltr"}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={isLoading || !inputValue.trim() || connectionStatus.status === "offline"}
+                  size="sm"
+                  className="px-4"
+                >
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+
+              {connectionStatus.status === "offline" && (
+                <div className="mt-2 text-sm text-red-500 text-center">
+                  {conversationLanguage === "ar" ? "لا يوجد اتصال بالإنترنت" : "No internet connection"}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <KnowledgeManager
+        isOpen={isKnowledgeManagerOpen}
+        onClose={() => {
+          setIsKnowledgeManagerOpen(false)
+          checkKnowledgeBaseStatus() // Refresh status after closing
+        }}
+      />
+    </>
+  )
+}

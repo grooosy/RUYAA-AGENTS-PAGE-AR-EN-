@@ -1,30 +1,14 @@
 import Groq from "groq-sdk"
 
-interface ConversationMessage {
-  role: "user" | "assistant"
+interface ChatResponse {
   content: string
-  timestamp?: Date
-  language?: "ar" | "en"
-}
-
-interface KnowledgeItem {
-  id: string
-  title: string
-  content: string
-  category: string
-  language: string
-  tags: string[]
-  isVerified: boolean
-}
-
-interface AIResponse {
-  content: string
+  language: "arabic" | "english"
   confidence: number
   sources: string[]
-  requiresHumanFollowup: boolean
   responseTime: number
-  contextUnderstanding: number
+  needsHumanFollowup: boolean
   detectedLanguage: "ar" | "en"
+  contextUnderstanding: number
 }
 
 interface APIStatus {
@@ -33,78 +17,23 @@ interface APIStatus {
   lastChecked: Date
 }
 
-interface RequestContext {
-  userId?: string
-  sessionId: string
-  deviceInfo: any
-  timestamp: string
-  conversationContext: {
-    previousTopics: string[]
-    userPreferences: any
-    sessionDuration: number
-    messageCount: number
-  }
+interface ConversationContext {
+  previousTopics: string[]
+  userPreferences: Record<string, any>
+  sessionDuration: number
+  messageCount: number
 }
 
-class GroqAIService {
+class GroqService {
   private groq: Groq
-  private readonly maxRetries = 3
-  private readonly timeoutMs = 30000
+  private conversationHistory: Array<{ role: "user" | "assistant"; content: string; timestamp: Date }> = []
+  private readonly maxHistoryLength = 10
 
   constructor() {
-    if (!process.env.GROQ_API_KEY) {
-      console.error("GROQ_API_KEY environment variable is not set")
-      throw new Error("GROQ_API_KEY is required")
-    }
-
     this.groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
+      apiKey: process.env.GROQ_API_KEY || "",
+      dangerouslyAllowBrowser: true,
     })
-  }
-
-  // Test API connection
-  async testConnection(): Promise<boolean> {
-    try {
-      const startTime = Date.now()
-
-      const completion = await Promise.race([
-        this.groq.chat.completions.create({
-          messages: [{ role: "user", content: "test" }],
-          model: "llama-3.1-8b-instant",
-          max_tokens: 10,
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Connection timeout")), 5000)),
-      ])
-
-      const responseTime = Date.now() - startTime
-      console.log(`Groq API connection test successful (${responseTime}ms)`)
-      return true
-    } catch (error) {
-      console.error("Groq API connection test failed:", error)
-      return false
-    }
-  }
-
-  // Get API status with response time
-  async getAPIStatus(): Promise<APIStatus> {
-    const startTime = Date.now()
-
-    try {
-      const isOnline = await this.testConnection()
-      const responseTime = Date.now() - startTime
-
-      return {
-        status: isOnline ? (responseTime > 5000 ? "degraded" : "online") : "offline",
-        responseTime,
-        lastChecked: new Date(),
-      }
-    } catch (error) {
-      return {
-        status: "offline",
-        responseTime: Date.now() - startTime,
-        lastChecked: new Date(),
-      }
-    }
   }
 
   // Detect language from text
@@ -142,157 +71,277 @@ class GroqAIService {
     return arabicWordCount > englishWordCount ? "ar" : "en"
   }
 
-  // Build system prompt based on language and knowledge
-  private buildSystemPrompt(language: "ar" | "en", knowledgeItems: KnowledgeItem[]): string {
-    const knowledgeContext = knowledgeItems
-      .filter((item) => item.language === language && item.isVerified)
-      .map((item) => `${item.title}: ${item.content}`)
-      .join("\n\n")
+  // Generate system prompt based on language and context
+  private generateSystemPrompt(language: "ar" | "en", knowledgeItems: any[] = []): string {
+    const knowledgeContext = knowledgeItems.map((item) => `${item.title}: ${item.content}`).join("\n\n")
 
     if (language === "ar") {
-      return `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الوكلاء الذكيين والذكاء الاصطناعي.
+      return `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في حلول الذكاء الاصطناعي.
 
-قواعد مهمة:
+معلومات الشركة:
+${knowledgeContext}
+
+تعليمات مهمة:
 - أجب باللغة العربية فقط
-- لا تخلط بين اللغات أبداً
-- استخدم المعلومات المتاحة في قاعدة المعرفة
 - كن مفيداً ومهذباً ومهنياً
-- إذا لم تكن متأكداً من المعلومات، اطلب التواصل المباشر
-- لا تقدم معلومات تواصل غير مؤكدة
-
-المعلومات المتاحة:
-${knowledgeContext || "لا توجد معلومات متاحة في قاعدة المعرفة حالياً"}
-
-أجب بناءً على هذه المعلومات فقط.`
+- استخدم المعلومات المتوفرة في قاعدة المعرفة
+- إذا لم تكن متأكداً من المعلومة، اذكر ذلك بوضوح
+- ركز على خدمات الشركة وحلول الذكاء الاصطناعي
+- لا تقدم معلومات اتصال خاطئة
+- إذا احتاج العميل لمعلومات محددة، انصحه بالتواصل المباشر مع الفريق`
     } else {
-      return `You are an intelligent assistant for Ruyaa Capital, a company specialized in intelligent agent solutions and artificial intelligence.
+      return `You are an intelligent assistant for Ruyaa Capital, specializing in artificial intelligence solutions.
 
-Important rules:
+Company Information:
+${knowledgeContext}
+
+Important Instructions:
 - Respond in English only
-- Never mix languages
-- Use information available in the knowledge base
 - Be helpful, polite, and professional
-- If you're not sure about information, request direct contact
-- Don't provide unverified contact information
-
-Available information:
-${knowledgeContext || "No information currently available in the knowledge base"}
-
-Respond based only on this information.`
+- Use the information available in the knowledge base
+- If you're not sure about information, state that clearly
+- Focus on company services and AI solutions
+- Do not provide incorrect contact information
+- If the customer needs specific information, advise them to contact the team directly`
     }
   }
 
-  // Generate AI response with retry logic
+  // Make real-time API call to Groq
   async generateResponse(
-    conversationHistory: ConversationMessage[],
-    knowledgeItems: KnowledgeItem[] = [],
-    context?: RequestContext,
-  ): Promise<AIResponse> {
+    conversationHistory: Array<{ role: "user" | "assistant"; content: string; timestamp?: Date; language?: string }>,
+    knowledgeItems: any[] = [],
+    context?: {
+      userId?: string
+      sessionId?: string
+      deviceInfo?: any
+      timestamp?: string
+      conversationContext?: ConversationContext
+    },
+  ): Promise<ChatResponse> {
     const startTime = Date.now()
 
-    // Get the latest user message to detect language
-    const latestMessage = conversationHistory[conversationHistory.length - 1]
-    const detectedLanguage = this.detectLanguage(latestMessage.content)
+    try {
+      // Get the latest user message
+      const latestMessage = conversationHistory[conversationHistory.length - 1]
+      if (!latestMessage || latestMessage.role !== "user") {
+        throw new Error("No user message found")
+      }
 
-    console.log(`Generating response in ${detectedLanguage} for: "${latestMessage.content.substring(0, 50)}..."`)
+      // Detect language
+      const detectedLanguage = this.detectLanguage(latestMessage.content)
 
-    let lastError: Error | null = null
+      // Filter knowledge items by language
+      const relevantKnowledge = knowledgeItems.filter(
+        (item) => item.language === (detectedLanguage === "ar" ? "arabic" : "english") && item.isVerified,
+      )
 
-    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-      try {
-        console.log(`Attempt ${attempt}/${this.maxRetries} - Making real-time API call to Groq...`)
+      // Generate system prompt
+      const systemPrompt = this.generateSystemPrompt(detectedLanguage, relevantKnowledge)
 
-        const systemPrompt = this.buildSystemPrompt(detectedLanguage, knowledgeItems)
+      // Prepare messages for API
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        ...conversationHistory.slice(-8).map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        })),
+      ]
 
-        // Prepare messages for API
-        const messages = [
-          { role: "system" as const, content: systemPrompt },
-          ...conversationHistory.slice(-10).map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-        ]
+      console.log("Making real-time Groq API call...")
 
-        // Make API call with timeout
-        const completion = await Promise.race([
-          this.groq.chat.completions.create({
-            messages,
-            model: "llama-3.1-8b-instant",
-            max_tokens: 1000,
-            temperature: 0.7,
-            top_p: 0.9,
-          }),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Request timeout")), this.timeoutMs)),
-        ])
+      // Make the API call with timeout
+      const completion = (await Promise.race([
+        this.groq.chat.completions.create({
+          messages,
+          model: "llama-3.1-8b-instant",
+          temperature: 0.7,
+          max_tokens: 1000,
+          top_p: 0.9,
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("API call timeout")), 30000)),
+      ])) as any
 
-        const responseContent = completion.choices[0]?.message?.content || ""
-        const responseTime = Date.now() - startTime
+      const responseContent = completion.choices[0]?.message?.content || ""
+      const responseTime = Date.now() - startTime
 
-        console.log(`API call successful in ${responseTime}ms`)
+      // Calculate confidence based on knowledge usage and response quality
+      const confidence = this.calculateConfidence(responseContent, relevantKnowledge, latestMessage.content)
 
-        // Calculate confidence based on knowledge usage and response quality
-        const usedKnowledge = knowledgeItems.filter(
-          (item) =>
-            responseContent.toLowerCase().includes(item.title.toLowerCase()) ||
-            item.content
-              .split(" ")
-              .some((word) => word.length > 3 && responseContent.toLowerCase().includes(word.toLowerCase())),
-        )
+      // Determine if human followup is needed
+      const needsHumanFollowup = this.shouldSuggestHumanFollowup(latestMessage.content, confidence)
 
-        const confidence = Math.min(0.9, 0.3 + usedKnowledge.length * 0.2 + (responseContent.length > 100 ? 0.2 : 0))
+      // Calculate context understanding
+      const contextUnderstanding = this.calculateContextUnderstanding(conversationHistory, responseContent)
 
-        // Determine if human followup is needed
-        const requiresHumanFollowup =
-          confidence < 0.6 ||
-          (detectedLanguage === "ar"
-            ? responseContent.includes("لست متأكد") || responseContent.includes("يرجى التواصل")
-            : responseContent.includes("not sure") || responseContent.includes("please contact"))
+      console.log(`Groq API response received in ${responseTime}ms`)
 
-        // Calculate context understanding (simple heuristic)
-        const contextUnderstanding = Math.min(
-          1.0,
-          0.5 + (conversationHistory.length > 1 ? 0.3 : 0) + (usedKnowledge.length > 0 ? 0.2 : 0),
-        )
+      return {
+        content: responseContent,
+        language: detectedLanguage === "ar" ? "arabic" : "english",
+        confidence,
+        sources: relevantKnowledge.map((item) => item.title),
+        responseTime,
+        needsHumanFollowup,
+        detectedLanguage,
+        contextUnderstanding,
+      }
+    } catch (error) {
+      console.error("Error in Groq API call:", error)
 
-        return {
-          content: responseContent,
-          confidence,
-          sources: usedKnowledge.map((item) => item.title),
-          requiresHumanFollowup,
-          responseTime,
-          contextUnderstanding,
-          detectedLanguage,
-        }
-      } catch (error) {
-        lastError = error as Error
-        console.error(`Attempt ${attempt} failed:`, error)
+      const responseTime = Date.now() - startTime
+      const detectedLanguage = this.detectLanguage(conversationHistory[conversationHistory.length - 1]?.content || "")
 
-        if (attempt < this.maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000 // Exponential backoff
-          console.log(`Retrying in ${delay}ms...`)
-          await new Promise((resolve) => setTimeout(resolve, delay))
-        }
+      // Return fallback response
+      return {
+        content:
+          detectedLanguage === "ar"
+            ? "عذراً، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى أو التواصل مع فريقنا للمساعدة."
+            : "Sorry, there was a connection error. Please try again or contact our team for assistance.",
+        language: detectedLanguage === "ar" ? "arabic" : "english",
+        confidence: 0.1,
+        sources: [],
+        responseTime,
+        needsHumanFollowup: true,
+        detectedLanguage,
+        contextUnderstanding: 0.0,
       }
     }
+  }
 
-    // All attempts failed, return fallback response
-    console.error("All API attempts failed, returning fallback response")
+  // Calculate confidence score
+  private calculateConfidence(response: string, knowledgeItems: any[], userQuery: string): number {
+    let confidence = 0.5 // Base confidence
 
-    const fallbackContent =
-      detectedLanguage === "ar"
-        ? "عذراً، أواجه صعوبة في الاتصال بالخدمة حالياً. يرجى المحاولة مرة أخرى أو التواصل المباشر للحصول على المساعدة."
-        : "Sorry, I'm having trouble connecting to the service right now. Please try again or contact directly for assistance."
-
-    return {
-      content: fallbackContent,
-      confidence: 0.1,
-      sources: [],
-      requiresHumanFollowup: true,
-      responseTime: Date.now() - startTime,
-      contextUnderstanding: 0.2,
-      detectedLanguage,
+    // Increase confidence if knowledge items were used
+    if (knowledgeItems.length > 0) {
+      confidence += 0.3
     }
+
+    // Increase confidence for longer, detailed responses
+    if (response.length > 100) {
+      confidence += 0.1
+    }
+
+    // Decrease confidence for very short responses
+    if (response.length < 50) {
+      confidence -= 0.2
+    }
+
+    // Increase confidence if response contains specific information
+    const specificTerms = ["رؤيا كابيتال", "Ruyaa Capital", "ذكاء اصطناعي", "artificial intelligence", "وكلاء ذكيين"]
+    const hasSpecificTerms = specificTerms.some((term) => response.toLowerCase().includes(term.toLowerCase()))
+    if (hasSpecificTerms) {
+      confidence += 0.2
+    }
+
+    return Math.min(Math.max(confidence, 0.0), 1.0)
+  }
+
+  // Determine if human followup should be suggested
+  private shouldSuggestHumanFollowup(userQuery: string, confidence: number): boolean {
+    // Suggest human followup for low confidence responses
+    if (confidence < 0.4) return true
+
+    // Suggest human followup for specific requests
+    const humanFollowupKeywords = [
+      "price",
+      "cost",
+      "contact",
+      "phone",
+      "email",
+      "meeting",
+      "consultation",
+      "سعر",
+      "تكلفة",
+      "تواصل",
+      "هاتف",
+      "إيميل",
+      "اجتماع",
+      "استشارة",
+    ]
+
+    return humanFollowupKeywords.some((keyword) => userQuery.toLowerCase().includes(keyword.toLowerCase()))
+  }
+
+  // Calculate context understanding score
+  private calculateContextUnderstanding(
+    conversationHistory: Array<{ role: string; content: string }>,
+    response: string,
+  ): number {
+    let understanding = 0.5
+
+    // Higher understanding for longer conversations
+    if (conversationHistory.length > 3) {
+      understanding += 0.2
+    }
+
+    // Check if response references previous context
+    const previousUserMessages = conversationHistory.filter((msg) => msg.role === "user").slice(-3)
+    const contextReferences = previousUserMessages.some((msg) =>
+      response.toLowerCase().includes(msg.content.toLowerCase().split(" ")[0]),
+    )
+
+    if (contextReferences) {
+      understanding += 0.3
+    }
+
+    return Math.min(Math.max(understanding, 0.0), 1.0)
+  }
+
+  // Get API status
+  async getAPIStatus(): Promise<APIStatus> {
+    const startTime = Date.now()
+
+    try {
+      // Make a simple test call
+      await this.groq.chat.completions.create({
+        messages: [{ role: "user", content: "test" }],
+        model: "llama-3.1-8b-instant",
+        max_tokens: 1,
+      })
+
+      const responseTime = Date.now() - startTime
+
+      return {
+        status: responseTime > 5000 ? "degraded" : "online",
+        responseTime,
+        lastChecked: new Date(),
+      }
+    } catch (error) {
+      return {
+        status: "offline",
+        responseTime: Date.now() - startTime,
+        lastChecked: new Date(),
+      }
+    }
+  }
+
+  // Test connection
+  async testConnection(): Promise<boolean> {
+    try {
+      const status = await this.getAPIStatus()
+      return status.status !== "offline"
+    } catch (error) {
+      return false
+    }
+  }
+
+  // Clear conversation context
+  clearContext(): void {
+    this.conversationHistory = []
+  }
+
+  // Legacy method for backward compatibility
+  async chat(message: string): Promise<ChatResponse> {
+    const conversationHistory = [{ role: "user" as const, content: message, timestamp: new Date() }]
+    return this.generateResponse(conversationHistory, [])
+  }
+
+  // Check health
+  async checkHealth(): Promise<APIStatus> {
+    return this.getAPIStatus()
   }
 }
 
-export const groqAI = new GroqAIService()
+export const groqService = new GroqService()
+export const groqAI = groqService // Alternative export name
