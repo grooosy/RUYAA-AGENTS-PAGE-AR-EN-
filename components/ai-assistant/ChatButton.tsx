@@ -33,55 +33,13 @@ export default function ChatButton() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-40">
-        {!isOpen && (
-          <div className="relative">
-            {/* Pulse animation rings */}
-            {hasNewMessage && (
-              <>
-                <div className="absolute inset-0 rounded-full bg-black animate-ping opacity-20" />
-                <div
-                  className="absolute inset-0 rounded-full bg-black animate-ping opacity-10"
-                  style={{ animationDelay: "0.5s" }}
-                />
-              </>
-            )}
-
-            {/* Main chat button */}
-            <Button
-              onClick={() => setIsOpen(true)}
-              className="w-16 h-16 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 bg-black text-white border-2 border-white hover:bg-gray-900"
-              aria-label="فتح المساعد الذكي"
-            >
-              <MessageCircle className="w-8 h-8" />
-            </Button>
-
-            {/* Status indicator */}
-            <div className="absolute -top-2 -right-2">
-              <div className="w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 bg-black rounded-full animate-pulse" />
-              </div>
-            </div>
-
-            {/* New message badge */}
-            {hasNewMessage && (
-              <div className="absolute -top-3 -left-3">
-                <div className="w-8 h-8 bg-white border-2 border-black rounded-full flex items-center justify-center animate-bounce">
-                  <span className="text-black text-xs font-bold">!</span>
-                </div>
-              </div>
-            )}
-
-            {/* Tooltip */}
-            <div className="absolute bottom-full right-0 mb-2 opacity-0 hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              <div className="bg-black text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap border-2 border-white">
-                مساعد رؤيا الذكي
-                <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black" />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <Button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 right-4 z-40 w-16 h-16 rounded-full bg-black border-2 border-white text-white hover:bg-gray-800 shadow-2xl transition-all duration-300 hover:scale-110"
+        size="lg"
+      >
+        <MessageCircle className="w-8 h-8" />
+      </Button>
 
       <AIAssistant isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>

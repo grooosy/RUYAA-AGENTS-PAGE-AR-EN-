@@ -11,7 +11,7 @@ interface AIResponse {
 }
 
 class GroqService {
-  private model = groq("llama-3.1-70b-versatile")
+  private model = groq("llama-3.1-8b-instant")
 
   async generateResponse(userMessage: string): Promise<string> {
     try {
@@ -80,4 +80,4 @@ Respond naturally and conversationally.`
 }
 
 export const groqService = new GroqService()
-export const groqAI = groq("llama-3.1-70b-versatile")
+export const groqAI = groq("llama-3.1-8b-instant")
