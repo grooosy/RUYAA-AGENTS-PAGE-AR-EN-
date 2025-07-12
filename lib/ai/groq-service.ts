@@ -1,64 +1,113 @@
+import { streamText } from "ai"
 import { groq } from "@ai-sdk/groq"
-import { generateText } from "ai"
 
-export class GroqAIService {
+interface KnowledgeItem {
+  id: string
+  title: string
+  content: string
+  category: string
+  language: string
+  tags: string[]
+  isVerified: boolean
+  lastUpdated: Date
+}
+
+class GroqAIService {
   private model = groq("llama-3.1-8b-instant")
 
   async testConnection(): Promise<boolean> {
     try {
-      const { text } = await generateText({
+      const { text } = await streamText({
         model: this.model,
         prompt: "Test connection",
         maxTokens: 10,
       })
-      return !!text
+
+      // Convert stream to text
+      let result = ""
+      for await (const chunk of text) {
+        result += chunk
+      }
+
+      return result.length > 0
     } catch (error) {
       console.error("Groq connection test failed:", error)
-      throw error
+      return false
     }
   }
 
-  async generateResponse(userMessage: string): Promise<string> {
+  async generateResponse(userMessage: string, knowledgeItems: KnowledgeItem[] = []): Promise<string> {
     try {
-      const systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال، شركة خدمات مالية واستثمارية رائدة في المملكة العربية السعودية.
+      const systemPrompt = this.buildSystemPrompt(knowledgeItems)
 
-معلومات الشركة:
-- اسم الشركة: رؤيا كابيتال
-- التخصص: الخدمات المالية والاستثمارية
-- الموقع: المملكة العربية السعودية
-- رقم الهاتف: +966 11 234 5678
-- البريد الإلكتروني: info@ruyaacapital.com
-
-الخدمات المقدمة:
-1. الاستشارات المالية والاستثمارية
-2. إدارة المحافظ الاستثمارية
-3. التخطيط المالي الشخصي والمؤسسي
-4. خدمات الوساطة المالية
-5. تحليل الأسواق المالية
-6. الاستثمار في الأسهم والسندات
-7. صناديق الاستثمار
-8. التمويل المؤسسي
-
-تعليمات الرد:
-- أجب باللغة العربية فقط
-- كن مهذباً ومهنياً
-- قدم معلومات دقيقة عن خدمات الشركة
-- إذا لم تكن متأكداً من إجابة، وجه العميل للتواصل المباشر
-- لا تقدم نصائح مالية محددة، بل وجه للاستشارة المتخصصة
-- اذكر معلومات التواصل عند الحاجة`
-
-      const { text } = await generateText({
+      const { text } = await streamText({
         model: this.model,
         system: systemPrompt,
         prompt: userMessage,
-        maxTokens: 500,
         temperature: 0.3,
+        maxTokens: 500,
       })
 
-      return text || "أعتذر، لم أتمكن من معالجة طلبك. يرجى التواصل معنا مباشرة على +966 11 234 5678"
+      // Convert stream to text
+      let response = ""
+      for await (const chunk of text) {
+        response += chunk
+      }
+
+      return response || this.getFallbackResponse(userMessage)
     } catch (error) {
       console.error("Error generating response:", error)
-      throw new Error("فشل في توليد الرد من الخدمة الذكية")
+      return this.getFallbackResponse(userMessage)
     }
   }
+
+  private buildSystemPrompt(knowledgeItems: KnowledgeItem[]): string {
+    let systemPrompt = `أنت مساعد ذكي لشركة رؤيا كابيتال المتخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي.
+
+معلومات الشركة:
+- الاسم: رؤيا كابيتال (Ruyaa Capital)
+- التخصص: تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي
+- الخدمات: وكلاء الدعم الذكي، أتمتة المبيعات، إدارة وسائل التواصل الاجتماعي، والحلول المخصصة
+
+تعليمات مهمة:
+1. استخدم المعلومات من قاعدة المعرفة أدناه للإجابة على الأسئلة
+2. إذا لم تجد المعلومات في قاعدة المعرفة، اطلب من المستخدم التواصل مباشرة مع الشركة
+3. لا تخترع أرقام هواتف أو عناوين بريد إلكتروني
+4. كن مهذباً ومفيداً
+5. أجب باللغة العربية إلا إذا طلب المستخدم الإنجليزية
+
+قاعدة المعرفة:`
+
+    if (knowledgeItems.length > 0) {
+      knowledgeItems.forEach((item) => {
+        systemPrompt += `\n\n${item.title}:\n${item.content}`
+      })
+    } else {
+      systemPrompt += `\n\nلا توجد معلومات محددة متاحة في قاعدة المعرفة حالياً. يرجى توجيه المستخدم للتواصل مباشرة مع الشركة للحصول على معلومات دقيقة.`
+    }
+
+    return systemPrompt
+  }
+
+  private getFallbackResponse(userMessage: string): string {
+    const lowerMessage = userMessage.toLowerCase()
+
+    if (
+      lowerMessage.includes("تواصل") ||
+      lowerMessage.includes("اتصال") ||
+      lowerMessage.includes("هاتف") ||
+      lowerMessage.includes("contact") ||
+      lowerMessage.includes("phone")
+    ) {
+      return `للتواصل مع رؤيا كابيتال، يرجى استخدام معلومات الاتصال المحدثة في قاعدة المعرفة. يمكنك أيضاً الوصول إلى إدارة قاعدة المعرفة من خلال النقر على أيقونة الروبوت في أعلى النافذة لتحديث معلومات الاتصال.`
+    }
+
+    if (lowerMessage.includes("خدمات") || lowerMessage.includes("services")) {
+      return `رؤيا كابيتال متخصصة في تطوير حلول الوكلاء الذكيين والذكاء الاصطناعي. للحصول على تفاصيل دقيقة حول خدماتنا، يرجى التواصل معنا مباشرة أو تحديث قاعدة المعرفة بالمعلومات الصحيحة.`
+    }
+
+    return `شكراً لك على تواصلك مع رؤيا كابيتال. للحصول على معلومات دقيقة ومحدثة، يرجى التواصل معنا مباشرة أو تحديث قاعدة المعرفة بالمعلومات الصحيحة من خلال النقر على أيقونة الروبوت في أعلى النافذة.`
+  }
 }
+
+export const groqService = new GroqAIService()
