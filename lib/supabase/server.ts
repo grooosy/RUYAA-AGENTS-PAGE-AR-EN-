@@ -1,8 +1,8 @@
-// Temporarily disabled Supabase server client
-// This file is disabled while working on v0
-// Re-enable when you're ready to connect to Supabase
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import type { Database } from "./types"
 
 export const createServerClient = () => {
-  console.warn("Supabase server client is temporarily disabled")
-  return null
+  const cookieStore = cookies()
+  return createServerComponentClient<Database>({ cookies: () => cookieStore })
 }

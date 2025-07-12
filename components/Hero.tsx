@@ -22,6 +22,9 @@ export default function Hero() {
   return (
     <>
       <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/30 via-black/10 to-black/30" />
+
         {/* Content */}
         <div className="relative z-20 container mx-auto px-4 text-center flex items-center justify-center min-h-screen">
           <motion.div
@@ -58,15 +61,15 @@ export default function Hero() {
                 <Button
                   onClick={handleLoginClick}
                   size="lg"
-                  variant="modern"
-                  className="text-lg font-semibold min-w-[200px] try-agent-glow"
+                  variant="primary"
+                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-900/50 transition-all duration-300"
                 >
                   {t("hero.loginButton")}
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-[var(--primary-blue)] text-[var(--primary-blue)] hover:bg-[var(--primary-blue)] hover:text-white px-8 py-4 text-lg font-semibold min-w-[200px] bg-transparent shadow-2xl hover:shadow-[var(--primary-blue)]/25 transition-all duration-300 rounded-lg"
+                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-800/50 transition-all duration-300 bg-transparent"
                 >
                   {t("hero.supportButton")}
                 </Button>

@@ -2,10 +2,10 @@
   "ar": {
     "header": {
       "home": "الرئيسية",
-      "services": "خدماتنا",
+      "services": "الخدمات",
       "aiAssistant": "المساعد الذكي",
       "training": "التدريب",
-      "contact": "تواصل معنا"
+      "contact": "اتصل بنا"
     },
     "nav": {
       "home": "الرئيسية",
@@ -15,8 +15,8 @@
       "contact": "تواصل معنا"
     },
     "hero": {
-      "title": "بوابة وكلاء رؤيا كابيتال",
-      "subtitle": "منصتك الشاملة للوصول الفوري لجميع الموارد والخدمات التي تحتاجها",
+      "title": "مرحباً بك في رؤيا كابيتال",
+      "subtitle": "نحن نقدم حلول مالية متطورة مدعومة بالذكاء الاصطناعي لتحسين أعمالك وزيادة كفاءتها",
       "loginButton": "تسجيل الدخول",
       "supportButton": "طلب المساعدة",
       "feature1": {
@@ -30,18 +30,48 @@
       "feature3": {
         "title": "حلول مخصصة",
         "description": "خدمات مصممة خصيصاً لمتطلباتك"
-      }
+      },
+      "cta": "ابدأ الآن",
+      "learnMore": "اعرف المزيد"
     },
     "aiAssistant": {
-      "title": "المساعد الذكي - من رؤيا",
+      "title": "مساعد رؤيا الذكي",
       "subtitle": "مساعدك الذكي دائماً في خدمتك",
       "description1": "ليس مجرد دردشة. يفهم عملك، يُقيّم المهام، يطلب موافقتك ثم ينفذ: يحجز الاجتماعات، يتابع العملاء، ويرتّب المستندات باحترافية كاملة—all بسرعة وبدقة عربية",
       "description2": "يمكنك تجربة المساعد الذكي مجانا و اختباره في عملك مجانا.",
       "tryButton": "جرب المساعد الذكي",
-      "learnButton": "تعلم المزيد"
+      "learnButton": "تعلم المزيد",
+      "feature1": "استشارات مالية فورية",
+      "feature2": "تحليل ذكي للاستثمارات",
+      "feature3": "دعم متعدد اللغات",
+      "status": "نشط الآن",
+      "processing": "معالجة ذكية",
+      "activeStatus": "نشط",
+      "chatActive": "محادثة نشطة",
+      "imageAlt": "واجهة المساعد الذكي",
+      "welcomeMessage": "مرحباً! أنا مساعدك الذكي من رؤيا كابيتال",
+      "placeholder": "اكتب رسالتك هنا...",
+      "availableNow": "متاح الآن"
+    },
+    "features": {
+      "title": "المساعد الذكي المتطور",
+      "subtitle": "اكتشف قوة الذكاء الاصطناعي في خدماتنا المالية المتقدمة",
+      "aiAssistant": {
+        "title": "مساعد رؤيا الذكي",
+        "description": "مساعد ذكي متطور يوفر استشارات مالية شخصية ودعم فوري على مدار الساعة لجميع احتياجاتك المالية",
+        "feature1": "استشارات مالية فورية",
+        "feature2": "تحليل ذكي للاستثمارات",
+        "feature3": "دعم متعدد اللغات",
+        "status": "نشط الآن",
+        "processing": "معالجة ذكية",
+        "activeStatus": "نشط",
+        "chatActive": "محادثة نشطة",
+        "imageAlt": "واجهة المساعد الذكي"
+      }
     },
     "services": {
       "title": "خدماتنا المتميزة",
+      "subtitle": "نقدم مجموعة شاملة من الخدمات المالية المدعومة بأحدث تقنيات الذكاء الاصطناعي",
       "service1": {
         "title": "الحلول الاستثمارية",
         "description": "منتجات استثمارية متنوعة تناسب مختلف الأهداف المالية وتطلعات العملاء مع حلول مبتكرة ومتوافقة مع الشريعة."
@@ -57,20 +87,66 @@
       "service4": {
         "title": "مجموعة وكلاء لادارة الشركات بشكل كامل و احترافي",
         "description": "فريق متكامل من الوكلاء المتخصصين لإدارة جميع جوانب الشركة بأعلى معايير الاحترافية والكفاءة."
+      },
+      "aiSupport": {
+        "title": "الدعم الذكي",
+        "description": "مساعد ذكي متخصص يقدم استشارات مالية فورية ودعم شخصي على مدار الساعة",
+        "feature1": "استشارات فورية 24/7",
+        "feature2": "تحليل مالي ذكي",
+        "feature3": "حلول مخصصة"
+      },
+      "salesAutomation": {
+        "title": "أتمتة المبيعات",
+        "description": "نظام متطور لأتمتة عمليات المبيعات وإدارة العملاء بكفاءة عالية",
+        "feature1": "إدارة العملاء المحتملين",
+        "feature2": "تتبع المبيعات الذكي",
+        "feature3": "تقارير تحليلية شاملة"
+      },
+      "socialMedia": {
+        "title": "إدارة وسائل التواصل",
+        "description": "خدمات متكاملة لإدارة وسائل التواصل الاجتماعي وبناء الحضور الرقمي",
+        "feature1": "إدارة المحتوى الذكي",
+        "feature2": "تحليل الأداء المتقدم",
+        "feature3": "استراتيجيات التسويق"
+      },
+      "customerService": {
+        "title": "خدمة العملاء",
+        "description": "نظام خدمة عملاء متطور يوفر دعم فوري وحلول مخصصة لكل عميل",
+        "feature1": "دعم فوري متعدد القنوات",
+        "feature2": "نظام تذاكر ذكي",
+        "feature3": "قاعدة معرفة شاملة"
       }
     },
     "training": {
       "title": "مركز التدريب والتطوير",
-      "description": "نلتزم بتطوير مهارات وكلائنا باستمرار لتقديم أفضل الخدمات لعملائنا."
+      "subtitle": "برامج تدريبية متخصصة لتطوير مهاراتك في التكنولوجيا المالية",
+      "centerTitle": "مركز التدريب المتقدم",
+      "description": "نوفر برامج تدريبية شاملة ومتخصصة في مجال التكنولوجيا المالية والذكاء الاصطناعي لتطوير قدراتك المهنية",
+      "feature1": "برامج تدريبية متخصصة",
+      "feature2": "شهادات معتمدة",
+      "feature3": "تدريب عملي تطبيقي",
+      "status": "متاح الآن",
+      "available": "مفتوح للتسجيل",
+      "premium": "برنامج متميز",
+      "participants": "المشاركون",
+      "imageAlt": "مركز التدريب"
     },
     "contact": {
       "title": "تواصل معنا",
+      "subtitle": "نحن هنا لمساعدتك في تحقيق أهدافك المالية",
       "technicalSupport": "فريق الدعم الفني",
       "relationshipManager": "مدير العلاقات",
       "supportDescription": "متاح على مدار الساعة لمساعدتك في حل أي مشكلات تقنية تواجهها.",
       "managerDescription": "تواصل مباشرة مع مدير علاقات الوكلاء للاستشارات المتخصصة.",
       "whatsappButton": "واتساب",
-      "callButton": "اتصل بنا"
+      "callButton": "اتصل بنا",
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "message": "الرسالة",
+      "send": "إرسال",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "hours": "ساعات العمل"
     },
     "footer": {
       "companyDescription": "شريكك الموثوق لتحقيق أهدافك الاستثمارية والمالية بأعلى معايير الجودة والاحترافية.",
@@ -79,7 +155,10 @@
       "company": "الشركة",
       "followUs": "تابعنا على:",
       "allRightsReserved": "جميع الحقوق محفوظة.",
-      "location": "سوريا , الامارات العربية المتحدة , المملكة العربية السعودية"
+      "location": "سوريا , الامارات العربية المتحدة , المملكة العربية السعودية",
+      "description": "رؤيا كابيتال - شريكك في النجاح المالي",
+      "quickLinks": "روابط سريعة",
+      "rights": "جميع الحقوق محفوظة"
     },
     "chatWidget": {
       "tryFree": "جرب الوكيل مجاناً"
@@ -98,9 +177,27 @@
       "signInSuccess": "تم تسجيل الدخول بنجاح",
       "signUpError": "خطأ في إنشاء الحساب",
       "signUpSuccess": "تم إنشاء الحساب بنجاح",
-      "googleSignInError": "خطأ في تسجيل الدخول عبر Google",
+      "googleSignInError": "خطأ في تسجيل الدخول بـ Google",
       "passwordMismatch": "كلمات المرور غير متطابقة",
-      "signOut": "تسجيل الخروج"
+      "signOut": "تسجيل الخروج",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "emailInvalid": "البريد الإلكتروني غير صحيح",
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "passwordTooShort": "كلمة المرور قصيرة جداً (6 أحرف على الأقل)",
+      "nameRequired": "الاسم مطلوب",
+      "confirmPasswordRequired": "تأكيد كلمة المرور مطلوب",
+      "invalidCredentials": "بيانات الدخول غير صحيحة",
+      "emailNotConfirmed": "يرجى تأكيد البريد الإلكتروني",
+      "tooManyRequests": "محاولات كثيرة، يرجى المحاولة لاحقاً",
+      "userAlreadyExists": "المستخدم موجود بالفعل",
+      "checkEmail": "يرجى فحص بريدك الإلكتروني للتأكيد",
+      "signingIn": "جاري تسجيل الدخول...",
+      "signingUp": "جاري إنشاء الحساب...",
+      "redirectingToGoogle": "جاري التوجيه إلى Google...",
+      "emailPlaceholder": "أدخل بريدك الإلكتروني",
+      "passwordPlaceholder": "أدخل كلمة المرور",
+      "fullNamePlaceholder": "أدخل اسمك الكامل",
+      "confirmPasswordPlaceholder": "أكد كلمة المرور"
     },
     "profile": {
       "noName": "بدون اسم",
@@ -132,10 +229,10 @@
   "en": {
     "header": {
       "home": "Home",
-      "services": "Our Services",
+      "services": "Services",
       "aiAssistant": "AI Assistant",
       "training": "Training",
-      "contact": "Contact Us"
+      "contact": "Contact"
     },
     "nav": {
       "home": "Home",
@@ -145,8 +242,8 @@
       "contact": "Contact Us"
     },
     "hero": {
-      "title": "Ruyaa Capital Agents Portal",
-      "subtitle": "Your all-in-one platform for instant access to all resources and services you need",
+      "title": "Welcome to Ruyaa Capital",
+      "subtitle": "We provide advanced AI-powered financial solutions to enhance your business efficiency and growth",
       "loginButton": "Log In",
       "supportButton": "Request Support",
       "feature1": {
@@ -160,7 +257,9 @@
       "feature3": {
         "title": "Custom Solutions",
         "description": "Services designed specifically for your requirements"
-      }
+      },
+      "cta": "Get Started",
+      "learnMore": "Learn More"
     },
     "aiAssistant": {
       "title": "Ruyaa AI Assistant",
@@ -168,10 +267,38 @@
       "description1": "Meet your smart assistant from Ruyaa – ready to help you with every detail of your business or project, just like a real human... maybe even better. Experience real-time support, task automation, and advanced communication—tailored for your needs.",
       "description2": "You can try the AI assistant for free and test it in your work at no cost.",
       "tryButton": "Try AI Assistant",
-      "learnButton": "Learn More"
+      "learnButton": "Learn More",
+      "feature1": "Instant financial consultations",
+      "feature2": "Smart investment analysis",
+      "feature3": "Multi-language support",
+      "status": "Active Now",
+      "processing": "Smart Processing",
+      "activeStatus": "Active",
+      "chatActive": "Chat Active",
+      "imageAlt": "AI Assistant Interface",
+      "welcomeMessage": "Welcome! I'm your AI assistant from Ruyaa Capital",
+      "placeholder": "Type your message here...",
+      "availableNow": "Available Now"
+    },
+    "features": {
+      "title": "Advanced AI Assistant",
+      "subtitle": "Discover the power of artificial intelligence in our advanced financial services",
+      "aiAssistant": {
+        "title": "Ruyaa AI Assistant",
+        "description": "An advanced AI assistant that provides personalized financial consultations and instant 24/7 support for all your financial needs",
+        "feature1": "Instant financial consultations",
+        "feature2": "Smart investment analysis",
+        "feature3": "Multi-language support",
+        "status": "Active Now",
+        "processing": "Smart Processing",
+        "activeStatus": "Active",
+        "chatActive": "Chat Active",
+        "imageAlt": "AI Assistant Interface"
+      }
     },
     "services": {
-      "title": "Our Premium Services",
+      "title": "Our Distinguished Services",
+      "subtitle": "We offer a comprehensive range of financial services powered by the latest AI technologies",
       "service1": {
         "title": "Investment Solutions",
         "description": "Diverse investment products that suit different financial goals and customer aspirations with innovative and Sharia-compliant solutions."
@@ -187,29 +314,78 @@
       "service4": {
         "title": "Complete Professional Business Management Agent Team",
         "description": "An integrated team of specialized agents to manage all aspects of the company with the highest standards of professionalism and efficiency."
+      },
+      "aiSupport": {
+        "title": "AI Support",
+        "description": "Specialized AI assistant providing instant financial consultations and personalized 24/7 support",
+        "feature1": "24/7 instant consultations",
+        "feature2": "Smart financial analysis",
+        "feature3": "Customized solutions"
+      },
+      "salesAutomation": {
+        "title": "Sales Automation",
+        "description": "Advanced system for automating sales processes and managing customers with high efficiency",
+        "feature1": "Lead management",
+        "feature2": "Smart sales tracking",
+        "feature3": "Comprehensive analytics"
+      },
+      "socialMedia": {
+        "title": "Social Media Management",
+        "description": "Integrated services for managing social media and building digital presence",
+        "feature1": "Smart content management",
+        "feature2": "Advanced performance analytics",
+        "feature3": "Marketing strategies"
+      },
+      "customerService": {
+        "title": "Customer Service",
+        "description": "Advanced customer service system providing instant support and customized solutions for each client",
+        "feature1": "Multi-channel instant support",
+        "feature2": "Smart ticketing system",
+        "feature3": "Comprehensive knowledge base"
       }
     },
     "training": {
-      "title": "Training & Development Center",
-      "description": "We continuously train and develop Ruyaa's agents to deliver the best results, always tailored to your needs."
+      "title": "Training and Development Center",
+      "subtitle": "Specialized training programs to develop your skills in financial technology",
+      "centerTitle": "Advanced Training Center",
+      "description": "We provide comprehensive and specialized training programs in financial technology and artificial intelligence to develop your professional capabilities",
+      "feature1": "Specialized training programs",
+      "feature2": "Certified credentials",
+      "feature3": "Practical hands-on training",
+      "status": "Available Now",
+      "available": "Open for Registration",
+      "premium": "Premium Program",
+      "participants": "Participants",
+      "imageAlt": "Training Center"
     },
     "contact": {
       "title": "Contact Us",
+      "subtitle": "We're here to help you achieve your financial goals",
       "technicalSupport": "Technical Support Team",
       "relationshipManager": "Relationship Manager",
       "supportDescription": "Our support team is available 24/7 to assist you.",
       "managerDescription": "Contact your dedicated relationship manager for business inquiries and partnership opportunities.",
       "whatsappButton": "WhatsApp",
-      "callButton": "Call Us"
+      "callButton": "Call Us",
+      "name": "Name",
+      "email": "Email",
+      "message": "Message",
+      "send": "Send",
+      "phone": "Phone",
+      "address": "Address",
+      "hours": "Business Hours"
     },
     "footer": {
       "companyDescription": "Ruyaa Capital is your trusted partner in digital transformation and intelligent business solutions.",
-      "services": "Services",
+      "services": "Our Services",
       "support": "Support",
       "company": "Company",
       "followUs": "Follow us:",
       "allRightsReserved": "All rights reserved.",
-      "location": "Syria, United Arab Emirates, Kingdom of Saudi Arabia"
+      "location": "Syria, United Arab Emirates, Kingdom of Saudi Arabia",
+      "description": "Ruyaa Capital - Your Partner in Financial Success",
+      "quickLinks": "Quick Links",
+      "rights": "All Rights Reserved"
     },
     "chatWidget": {
       "tryFree": "Try Agent for Free"
@@ -224,13 +400,31 @@
       "fullName": "Full Name",
       "or": "or",
       "continueWithGoogle": "Continue with Google",
-      "signInError": "Sign in error",
-      "signInSuccess": "Signed in successfully",
-      "signUpError": "Sign up error",
+      "signInSuccess": "Successfully signed in",
       "signUpSuccess": "Account created successfully",
+      "signInError": "Sign in error",
+      "signUpError": "Sign up error",
       "googleSignInError": "Google sign in error",
       "passwordMismatch": "Passwords do not match",
-      "signOut": "Sign Out"
+      "signOut": "Sign Out",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Invalid email address",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "Password too short (minimum 6 characters)",
+      "nameRequired": "Name is required",
+      "confirmPasswordRequired": "Password confirmation is required",
+      "invalidCredentials": "Invalid login credentials",
+      "emailNotConfirmed": "Please confirm your email",
+      "tooManyRequests": "Too many requests, please try again later",
+      "userAlreadyExists": "User already exists",
+      "checkEmail": "Please check your email for confirmation",
+      "signingIn": "Signing in...",
+      "signingUp": "Creating account...",
+      "redirectingToGoogle": "Redirecting to Google...",
+      "emailPlaceholder": "Enter your email",
+      "passwordPlaceholder": "Enter your password",
+      "fullNamePlaceholder": "Enter your full name",
+      "confirmPasswordPlaceholder": "Confirm your password"
     },
     "profile": {
       "noName": "No Name",

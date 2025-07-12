@@ -4,50 +4,58 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 10%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 20%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --primary-blue: #2D3BE0;
-    --primary-blue-hover: #3445FF;
   }
 
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 5%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 10%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 20%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -55,427 +63,149 @@
   * {
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-black text-white font-sans;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* Full-screen background image */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("/images/background.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    z-index: -1;
+    opacity: 0.95;
+  }
+
+  /* Mobile optimization for background */
+  @media (max-width: 768px) {
+    body::before {
+      background-attachment: scroll;
+      background-size: cover;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
   }
 }
 
-/* RTL/LTR Layout Support */
-.rtl {
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* RTL Support */
+[dir="rtl"] {
   direction: rtl;
+  text-align: right;
 }
 
-.ltr {
-  direction: ltr;
+[dir="rtl"] .space-x-2 > * + * {
+  margin-left: 0;
+  margin-right: 0.5rem;
 }
 
-/* Enhanced 3D Card Effects */
-.card-3d {
-  transform-style: preserve-3d;
-  transition: all 0.3s ease-out;
-  will-change: transform;
-  perspective: 1000px;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+[dir="rtl"] .space-x-4 > * + * {
+  margin-left: 0;
+  margin-right: 1rem;
 }
 
-.service-card-3d {
-  transform-style: preserve-3d;
-  transition: all 0.3s ease-out;
-  will-change: transform;
-  perspective: 1500px;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.enhanced-card-3d {
-  transform-style: preserve-3d;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-  perspective: 1500px;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Modern Button Styles */
-.modern-button {
-  background: linear-gradient(45deg, var(--primary-blue), var(--primary-blue-hover));
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 600;
-  color: white;
-  border: none;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.modern-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, var(--primary-blue-hover), #4F5AFF);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
-}
-
-.modern-button:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 25px rgba(45, 59, 224, 0.4), 0 0 20px rgba(45, 59, 224, 0.2);
-}
-
-.modern-button:hover::before {
-  opacity: 1;
-}
-
-.modern-button:active {
-  transform: translateY(0) scale(0.98);
-  transition: all 0.1s ease;
-}
-
-/* Modern Button Border Animation */
-.modern-button::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)) border-box;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: destination-out;
-  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.modern-button:hover::after {
-  opacity: 1;
-}
-
-/* Service Card Enhancements */
-.service-card {
-  background: rgba(17, 24, 39, 0.8);
+/* Enhanced card transparency for better readability over background */
+.card {
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(45, 59, 224, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.service-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(45, 59, 224, 0.1), rgba(52, 69, 255, 0.05));
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-
-.service-card:hover::before {
-  opacity: 1;
-}
-
-.service-card:hover {
-  border-color: rgba(45, 59, 224, 0.4);
-  box-shadow: 0 20px 40px rgba(45, 59, 224, 0.15);
-}
-
-.service-card-image {
-  height: 200px;
-  object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.service-card:hover .service-card-image {
-  transform: scale(1.05);
-}
-
-.service-card-content {
-  padding: 16px;
-  position: relative;
-  z-index: 2;
-}
-
-.service-card-title {
-  margin-bottom: 12px;
-  font-weight: 700;
-  color: white;
-  line-height: 1.4;
-}
-
-.service-card-description {
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.6;
-}
-
-/* Mobile Optimization */
-@media (max-width: 768px) {
-  .card-3d.mobile-optimized,
-  .service-card-3d.mobile-optimized,
-  .enhanced-card-3d.mobile-optimized {
-    transform: none !important;
-    transition: background-color 0.3s ease;
-  }
-
-  .card-3d.mobile-optimized:hover,
-  .service-card-3d.mobile-optimized:hover,
-  .enhanced-card-3d.mobile-optimized:hover {
-    background-color: rgba(17, 24, 39, 0.9);
-  }
-
-  .modern-button:hover {
-    transform: none;
-    box-shadow: 0 4px 15px rgba(45, 59, 224, 0.3);
-  }
-
-  .service-card:hover {
-    transform: none;
-  }
-
-  .service-card:hover .service-card-image {
-    transform: none;
-  }
-}
-
-/* Performance Optimizations */
-.card-3d,
-.service-card-3d,
-.enhanced-card-3d {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform-origin: center center;
-}
-
-/* Language-specific spacing adjustments */
-.rtl .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
-}
-
-.ltr .space-x-4 > :not([hidden]) ~ :not([hidden]) {
-  margin-right: 0;
-  margin-left: 1rem;
-}
-
-/* Custom scrollbar for dark theme */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #000;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #06b6d4, #0891b2);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #0891b2, #0e7490);
-}
-
-/* Smooth transitions for all interactive elements */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
-    transform, filter, backdrop-filter;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Enhanced focus styles for accessibility */
-*:focus-visible {
-  outline: 2px solid #06b6d4;
-  outline-offset: 2px;
-}
-
-/* Improved text rendering */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* Background optimization */
-@media (max-width: 768px) {
-  .fixed {
-    background-attachment: scroll !important;
-  }
-}
-
-/* Gradient text effects */
-.gradient-text {
-  background: linear-gradient(135deg, #06b6d4, #3b82f6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Enhanced drop shadows */
-.drop-shadow-glow {
-  filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.3));
-}
-
-/* Language Toggle Animation */
-.language-toggle {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.language-toggle:hover {
-  transform: scale(1.05);
-}
-
-/* Voiceflow Chat Widget Styling - Enhanced for better integration */
-#voiceflow-chat {
-  z-index: 9999 !important;
-}
-
-/* Custom styling for Voiceflow widget to match site theme */
-[data-vf-chat] {
-  --vf-primary-color: #06b6d4 !important;
-  --vf-secondary-color: #0891b2 !important;
-  --vf-background-color: rgba(0, 0, 0, 0.9) !important;
-  --vf-text-color: #ffffff !important;
-}
-
-/* Ensure chat widget is accessible on mobile and respects RTL/LTR */
-@media (max-width: 768px) {
-  [data-vf-chat] {
-    bottom: 20px !important;
-    width: auto !important;
-  }
-
-  .rtl [data-vf-chat] {
-    left: 20px !important;
-    right: auto !important;
-  }
-
-  .ltr [data-vf-chat] {
-    right: 20px !important;
-    left: auto !important;
-  }
-}
-
-/* RTL/LTR specific positioning for chat widget indicator */
-.rtl .chat-indicator {
-  left: 1.5rem;
-  right: auto;
-}
-
-.ltr .chat-indicator {
-  right: 1.5rem;
-  left: auto;
-}
-
-/* Additional Voiceflow widget integration styles */
-div[data-testid="chat-widget"] {
-  z-index: 9999 !important;
-}
-
-/* Ensure proper positioning and theming */
-.vfrc-chat--closed,
-.vfrc-chat--open {
-  z-index: 9999 !important;
-}
-
-/* Voiceflow widget error handling - prevent layout shifts */
-.voiceflow-widget-error {
-  display: none !important;
-}
-
-/* Suppress fetch errors visually while maintaining functionality */
-.voiceflow-fetch-error {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-/* Language-specific font optimizations */
-.rtl {
-  font-family: "Noto Sans Arabic", "Cairo", "Amiri", system-ui, sans-serif;
-}
-
-.ltr {
-  font-family: "Inter", "Roboto", system-ui, sans-serif;
-}
-
-/* Smooth language transition effects */
-.language-transition {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Logo positioning animations */
-.logo-transition {
-  transition: all 0.3s ease-in-out;
-}
-
-/* Modern Try Agent Button Styling */
-.try-agent-button {
-  position: relative;
-  overflow: hidden;
-}
-
-.try-agent-button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.try-agent-button:hover::before {
-  left: 100%;
-}
-
-/* Enhanced glow effect for the try agent button */
-@keyframes glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(45, 59, 224, 0.4), 0 0 40px rgba(52, 69, 255, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(45, 59, 224, 0.6), 0 0 60px rgba(52, 69, 255, 0.4);
-  }
-}
-
-.try-agent-glow {
-  animation: glow-pulse 2s ease-in-out infinite;
-}
-
-/* Responsive adjustments for the try agent button */
-@media (max-width: 640px) {
-  .try-agent-button {
-    font-size: 0.875rem;
-    padding: 0.75rem 1.5rem;
-  }
-}
-
-/* Network error handling for third-party widgets */
-.network-error-fallback {
-  display: none;
-}
-
-/* Prevent CORS and fetch errors from affecting layout */
-.third-party-widget-container {
-  isolation: isolate;
+.dark .card {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

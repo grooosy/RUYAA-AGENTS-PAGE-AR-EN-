@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from "lucide-react"
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from 'lucide-react'
 import Image from "next/image"
 import { useLanguage } from "@/contexts/LanguageContext"
 

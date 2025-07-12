@@ -1,8 +1,14 @@
-// Temporarily disabled Supabase client
-// This file is disabled while working on v0
-// Re-enable when you're ready to connect to Supabase
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import type { Database } from "./types"
+
+let supabaseClient: ReturnType<typeof createClientComponentClient<Database>> | null = null
 
 export const createClient = () => {
-  console.warn("Supabase client is temporarily disabled")
-  return null
+  if (!supabaseClient) {
+    supabaseClient = createClientComponentClient<Database>({
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    })
+  }
+  return supabaseClient
 }

@@ -193,16 +193,10 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 bg-transparent"
-            >
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               {t("common.cancel")}
             </Button>
-            <Button type="submit" className="bg-cyan-600 hover:bg-cyan-700" disabled={isLoading}>
+            <Button type="submit" variant="primary" disabled={isLoading}>
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
