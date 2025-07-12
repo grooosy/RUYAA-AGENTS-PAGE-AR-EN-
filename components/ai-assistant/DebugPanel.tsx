@@ -1,11 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Monitor, Smartphone, Tablet, Wifi, WifiOff, Bug } from "lucide-react"
+import { Monitor, Smartphone, Tablet } from "lucide-react"
 
 interface DeviceInfo {
   userAgent: string
@@ -26,12 +22,25 @@ interface DeviceInfo {
   touchSupported: boolean
   localStorage: boolean
   sessionStorage: boolean
+  performance: {
+    memory?: number
+    timing?: number
+  }
+}
+
+interface PerformanceMetric {
+  name: string
+  value: number
+  unit: string
+  status: "good" | "warning" | "poor"
 }
 
 export default function DebugPanel() {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [isVisible, setIsVisible] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([])
 
   useEffect(() => {
     // Only show in development
@@ -83,28 +92,99 @@ export default function DebugPanel() {
             return false
           }
         })(),
+        performance: {
+          memory: (performance as any).memory?.usedJSHeapSize,
+          timing: performance.now(),
+        },
       }
 
       setDeviceInfo(info)
     }
 
+    const updatePerformanceMetrics = () => {
+      const metrics: PerformanceMetric[] = []
+
+      // Memory usage
+      if ((performance as any).memory) {
+        const memoryMB = (performance as any).memory.usedJSHeapSize / 1024 / 1024
+        metrics.push({
+          name: "Memory Usage",
+          value: Math.round(memoryMB),
+          unit: "MB",
+          status: memoryMB < 50 ? "good" : memoryMB < 100 ? "warning" : "poor",
+        })
+      }
+
+      // Frame rate estimation
+      let frameCount = 0
+      let lastTime = performance.now()
+      const measureFPS = () => {
+        frameCount++
+        const currentTime = performance.now()
+        if (currentTime - lastTime >= 1000) {
+          const fps = frameCount
+          metrics.push({
+            name: "Frame Rate",
+            value: fps,
+            unit: "FPS",
+            status: fps >= 50 ? "good" : fps >= 30 ? "warning" : "poor",
+          })
+          frameCount = 0
+          lastTime = currentTime
+        }
+        requestAnimationFrame(measureFPS)
+      }
+      requestAnimationFrame(measureFPS)
+
+      // Network speed estimation
+      const startTime = performance.now()
+      fetch(window.location.origin, { method: "HEAD" })
+        .then(() => {
+          const networkLatency = performance.now() - startTime
+          metrics.push({
+            name: "Network Latency",
+            value: Math.round(networkLatency),
+            unit: "ms",
+            status: networkLatency < 100 ? "good" : networkLatency < 300 ? "warning" : "poor",
+          })
+          setPerformanceMetrics([...metrics])
+        })
+        .catch(() => {
+          metrics.push({
+            name: "Network Latency",
+            value: 0,
+            unit: "ms",
+            status: "poor",
+          })
+          setPerformanceMetrics([...metrics])
+        })
+    }
+
     detectDevice()
+    updatePerformanceMetrics()
+
     window.addEventListener("resize", detectDevice)
     window.addEventListener("online", detectDevice)
     window.addEventListener("offline", detectDevice)
 
     // Error tracking
     const errorHandler = (event: ErrorEvent) => {
-      setErrors((prev) => [...prev, `${event.error?.message || event.message} at ${event.filename}:${event.lineno}`])
+      setErrors((prev) => [...prev.slice(-9), `${event.error?.message || event.message} at ${event.filename}:${event.lineno}`])
+    }
+
+    const rejectionHandler = (event: PromiseRejectionEvent) => {
+      setErrors((prev) => [...prev.slice(-9), `Unhandled Promise: ${event.reason}`])
     }
 
     window.addEventListener("error", errorHandler)
+    window.addEventListener("unhandledrejection", rejectionHandler)
 
     return () => {
       window.removeEventListener("resize", detectDevice)
       window.removeEventListener("online", detectDevice)
       window.removeEventListener("offline", detectDevice)
       window.removeEventListener("error", errorHandler)
+      window.removeEventListener("unhandledrejection", rejectionHandler)
     }
   }, [])
 
@@ -113,120 +193,19 @@ export default function DebugPanel() {
   const getDeviceIcon = () => {
     switch (deviceInfo.deviceType) {
       case "mobile":
-        return <Smartphone className="w-4 h-4" />
+        return <Smartphone className="w-4 h-4 text-blue-400" />
       case "tablet":
-        return <Tablet className="w-4 h-4" />
+        return <Tablet className="w-4 h-4 text-green-400" />
       default:
-        return <Monitor className="w-4 h-4" />
+        return <Monitor className="w-4 h-4 text-purple-400" />
     }
   }
 
-  return (
-    <div className="fixed bottom-4 left-4 z-50 w-80 max-h-96 overflow-hidden">
-      <Card className="bg-black/90 text-white border-gray-700">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Bug className="w-4 h-4" />
-            Debug Panel
-            <Badge variant="outline" className="ml-auto">
-              DEV
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="pt-0">
-          <Tabs defaultValue="device" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-              <TabsTrigger value="device" className="text-xs">
-                Device
-              </TabsTrigger>
-              <TabsTrigger value="network" className="text-xs">
-                Network
-              </TabsTrigger>
-              <TabsTrigger value="errors" className="text-xs">
-                Errors
-                {errors.length > 0 && (
-                  <Badge variant="destructive" className="ml-1 text-xs">
-                    {errors.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="device" className="mt-2 space-y-2">
-              <div className="flex items-center gap-2 text-xs">
-                {getDeviceIcon()}
-                <span className="capitalize">{deviceInfo.deviceType}</span>
-                <Badge variant={deviceInfo.touchSupported ? "default" : "secondary"} className="text-xs">
-                  {deviceInfo.touchSupported ? "Touch" : "No Touch"}
-                </Badge>
-              </div>
-
-              <div className="text-xs space-y-1">
-                <div>
-                  Screen: {deviceInfo.screen.width}×{deviceInfo.screen.height}
-                </div>
-                <div>
-                  Viewport: {deviceInfo.viewport.width}×{deviceInfo.viewport.height}
-                </div>
-                <div>Platform: {deviceInfo.platform}</div>
-                <div>Language: {deviceInfo.language}</div>
-              </div>
-
-              <div className="flex gap-1">
-                <Badge variant={deviceInfo.localStorage ? "default" : "destructive"} className="text-xs">
-                  LocalStorage
-                </Badge>
-                <Badge variant={deviceInfo.sessionStorage ? "default" : "destructive"} className="text-xs">
-                  SessionStorage
-                </Badge>
-                <Badge variant={deviceInfo.cookieEnabled ? "default" : "destructive"} className="text-xs">
-                  Cookies
-                </Badge>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="network" className="mt-2 space-y-2">
-              <div className="flex items-center gap-2 text-xs">
-                {deviceInfo.onLine ? (
-                  <Wifi className="w-4 h-4 text-green-500" />
-                ) : (
-                  <WifiOff className="w-4 h-4 text-red-500" />
-                )}
-                <span>{deviceInfo.onLine ? "Online" : "Offline"}</span>
-              </div>
-
-              <div className="text-xs">
-                <div>
-                  Connection:{" "}
-                  {navigator.connection ? (navigator.connection as any).effectiveType || "Unknown" : "Unknown"}
-                </div>
-                <div>User Agent: {deviceInfo.userAgent.substring(0, 50)}...</div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="errors" className="mt-2">
-              {errors.length === 0 ? (
-                <div className="text-xs text-green-400">No errors detected</div>
-              ) : (
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {errors.slice(-5).map((error, index) => (
-                    <div key={index} className="text-xs text-red-400 bg-red-900/20 p-1 rounded">
-                      {error}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {errors.length > 0 && (
-                <Button onClick={() => setErrors([])} variant="outline" size="sm" className="mt-2 text-xs h-6">
-                  Clear Errors
-                </Button>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+  const getMetricColor = (status: string) => {
+    switch (status) {
+      case "good":
+        return "text-green-400"
+      case "warning":
+        return "text-yellow-400"
+      case "poor":
+        return "text-red-400"

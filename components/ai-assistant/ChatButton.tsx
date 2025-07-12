@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, Sparkles, X, Brain } from "lucide-react"
+import { MessageSquare, Sparkles, X, Brain, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -18,6 +18,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
   const { isRTL } = useLanguage()
   const [isHovered, setIsHovered] = useState(false)
   const [showPulse, setShowPulse] = useState(true)
+  const [showTooltip, setShowTooltip] = useState(false)
   const [deviceInfo, setDeviceInfo] = useState({
     isMobile: false,
     touchSupported: false,
@@ -27,7 +28,8 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
   useEffect(() => {
     const detectDevice = () => {
       const userAgent = navigator.userAgent.toLowerCase()
-      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+      const isMobile =
+        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || window.innerWidth <= 768
       const touchSupported = "ontouchstart" in window || navigator.maxTouchPoints > 0
 
       setDeviceInfo({
@@ -41,11 +43,19 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
     return () => window.removeEventListener("resize", detectDevice)
   }, [])
 
+  // Show tooltip after delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTooltip(true)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
+
   // Hide pulse after initial display
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowPulse(false)
-    }, 5000)
+    }, 8000)
     return () => clearTimeout(timer)
   }, [])
 
@@ -57,31 +67,52 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
         // Ignore vibration errors
       }
     }
+    setShowTooltip(false)
     onClick()
+  }
+
+  const handleMouseEnter = () => {
+    if (!deviceInfo.touchSupported) {
+      setIsHovered(true)
+      setShowTooltip(true)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (!deviceInfo.touchSupported) {
+      setIsHovered(false)
+      setShowTooltip(false)
+    }
   }
 
   return (
     <div className="fixed bottom-6 right-6 z-40">
       <AnimatePresence>
         {/* Welcome tooltip */}
-        {!isOpen && showPulse && (
+        {!isOpen && showTooltip && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            className="absolute bottom-20 right-0 bg-slate-900/95 backdrop-blur-sm text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 max-w-xs"
-            style={{ direction: isRTL ? "rtl" : "ltr" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="absolute bottom-20 right-0 bg-black/95 backdrop-blur-xl text-white px-4 py-3 rounded-2xl shadow-2xl border border-gray-800/50 max-w-xs"
+            style={{
+              direction: isRTL ? "rtl" : "ltr",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+            }}
           >
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Sparkles className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+            <div className="flex items-center space-x-3 space-x-reverse">
+              <div className="p-2 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                <Sparkles className="w-5 h-5 text-gray-300 flex-shrink-0" />
+              </div>
               <div>
-                <p className="text-sm font-medium">{user ? `مرحباً مرة أخرى! 🎯` : "مرحباً! 👋"}</p>
-                <p className="text-xs text-slate-300 mt-1">
+                <p className="text-sm font-medium text-white">{user ? `مرحباً مرة أخرى! 🎯` : "مرحباً! 👋"}</p>
+                <p className="text-xs text-gray-400 mt-1">
                   {user ? "لدي معلومات محدثة عن خدماتنا الجديدة" : "أنا مساعدك الذكي. اسألني عن خدمات الوكلاء الذكيين!"}
                 </p>
               </div>
             </div>
-            <div className="absolute bottom-0 right-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-slate-900/95 border-r border-b border-slate-700"></div>
+            <div className="absolute bottom-0 right-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black/95 border-r border-b border-gray-800/50"></div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -92,9 +123,20 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
         whileTap={{ scale: 0.95 }}
         className="relative"
       >
-        {/* Pulse animation */}
+        {/* Pulse animation rings */}
         {showPulse && !isOpen && (
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 animate-ping opacity-75"></div>
+          <>
+            <motion.div
+              className="absolute inset-0 rounded-full bg-gray-700/30"
+              animate={{ scale: [1, 1.5, 2], opacity: [0.5, 0.2, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeOut" }}
+            />
+            <motion.div
+              className="absolute inset-0 rounded-full bg-gray-600/40"
+              animate={{ scale: [1, 1.3, 1.8], opacity: [0.6, 0.3, 0] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: 0.5, ease: "easeOut" }}
+            />
+          </>
         )}
 
         {/* Unread count badge */}
@@ -102,7 +144,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10"
+            className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center z-10 border-2 border-black"
           >
             {unreadCount > 9 ? "9+" : unreadCount}
           </motion.div>
@@ -110,23 +152,22 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
 
         <Button
           onClick={handleClick}
-          onMouseEnter={() => !deviceInfo.touchSupported && setIsHovered(true)}
-          onMouseLeave={() => !deviceInfo.touchSupported && setIsHovered(false)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
           className={`
             relative w-16 h-16 rounded-full shadow-2xl border-2 transition-all duration-300 overflow-hidden
-            ${
-              isOpen
-                ? "bg-red-600 hover:bg-red-700 border-red-500"
-                : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 border-cyan-500"
-            }
+            ${isOpen ? "bg-gray-800 hover:bg-gray-700 border-gray-700" : "bg-black hover:bg-gray-900 border-gray-800"}
             ${isHovered ? "shadow-3xl" : "shadow-2xl"}
           `}
           style={{
             boxShadow: isHovered
-              ? "0 20px 40px rgba(6, 182, 212, 0.4), 0 0 0 4px rgba(6, 182, 212, 0.1)"
-              : "0 10px 30px rgba(0, 0, 0, 0.3)",
+              ? "0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(75, 85, 99, 0.2)"
+              : "0 10px 30px rgba(0, 0, 0, 0.5)",
           }}
         >
+          {/* Background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-800/20 to-gray-900/40 rounded-full" />
+
           {/* Icon container */}
           <div className="relative z-10 flex items-center justify-center">
             <AnimatePresence mode="wait">
@@ -161,31 +202,43 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
                       repeat: Number.POSITIVE_INFINITY,
                       ease: "easeInOut",
                     }}
-                    className="absolute -top-1 -right-1 w-3 h-3 bg-cyan-400 rounded-full flex items-center justify-center"
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-gray-400 rounded-full flex items-center justify-center border border-black"
                   >
-                    <Brain className="w-2 h-2 text-slate-900" />
+                    <Brain className="w-2 h-2 text-black" />
                   </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Ripple effect on click */}
+          {/* Ripple effect on hover */}
           <motion.div
-            className="absolute inset-0 bg-white rounded-full opacity-0"
+            className="absolute inset-0 bg-white/10 rounded-full opacity-0"
             animate={isHovered ? { scale: [0, 1], opacity: [0.3, 0] } : {}}
             transition={{ duration: 0.6 }}
           />
+
+          {/* Inner glow effect */}
+          <div className="absolute inset-1 bg-gradient-to-br from-gray-700/20 to-transparent rounded-full" />
         </Button>
 
         {/* Status indicator */}
-        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-900 shadow-lg">
-          <motion.div
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-            className="w-full h-full bg-green-400 rounded-full"
-          />
-        </div>
+        <motion.div
+          className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-600 rounded-full border-2 border-black shadow-lg"
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+        >
+          <div className="w-full h-full bg-green-500 rounded-full" />
+        </motion.div>
+
+        {/* Power indicator */}
+        <motion.div
+          className="absolute -top-1 -left-1 w-3 h-3 bg-gray-600 rounded-full border border-black flex items-center justify-center"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
+        >
+          <Zap className="w-2 h-2 text-white" />
+        </motion.div>
       </motion.div>
 
       {/* Keyboard shortcut hint for desktop */}
@@ -194,7 +247,7 @@ export default function ChatButton({ onClick, isOpen, unreadCount = 0 }: ChatBut
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 5 }}
-          className="absolute bottom-20 right-0 bg-slate-900/90 text-white text-xs px-2 py-1 rounded whitespace-nowrap border border-slate-700"
+          className="absolute bottom-20 right-0 bg-black/90 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap border border-gray-800/50 backdrop-blur-sm"
         >
           اضغط Ctrl+K للفتح السريع
         </motion.div>
