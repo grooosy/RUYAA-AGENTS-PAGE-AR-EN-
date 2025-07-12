@@ -49,11 +49,11 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        content: `أهلاً وسهلاً! أنا مساعدك الذكي من رؤيا كابيتال.
+        content: `أهلاً فيك! أنا مساعد رؤيا كابيتال.
 
-بقدر ساعدك تفهم كيف الوكلاء الذكيين ممكن يخدموا شركتك ويسهلوا أعمالك.
+بقدر ساعدك تفهم خدماتنا بتطوير الوكلاء الذكيين وكيف ممكن يفيدوا شركتك.
 
-شو بدك تعرف؟`,
+شو بدك تعرف عن خدماتنا؟`,
         role: "assistant",
         timestamp: new Date(),
       }
@@ -63,15 +63,17 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
 
   // Log interaction to Supabase
   const logInteraction = async (userMessage: string, aiResponse: string) => {
-    if (!user) return
-
     try {
-      await supabase.from("ai_interactions").insert({
-        user_id: user.id,
-        message: userMessage,
-        response: aiResponse,
+      await supabase.from("ai_conversations").insert({
+        user_id: user?.id || null,
+        user_message: userMessage,
+        ai_response: aiResponse,
         timestamp: new Date().toISOString(),
-        agent_type: "ai_assistant",
+        session_id: `session_${Date.now()}`,
+        metadata: {
+          user_agent: navigator.userAgent,
+          language: /[\u0600-\u06FF]/.test(userMessage) ? "ar" : "en",
+        },
       })
     } catch (error) {
       console.warn("Failed to log interaction:", error)
@@ -112,7 +114,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "عذراً، حدث خطأ في الاتصال. جرب مرة تانية أو تواصل معنا على admin@ruyaacapital.com",
+        content: "عذراً، حدث خطأ تقني. تواصل معنا على admin@ruyaacapital.com",
         role: "assistant",
         timestamp: new Date(),
       }
