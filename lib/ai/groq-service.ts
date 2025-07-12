@@ -7,7 +7,6 @@ interface AIResponse {
   confidence: number
   sources: string[]
   requiresHumanFollowup: boolean
-  suggestedActions: string[]
 }
 
 interface ConversationMessage {
@@ -19,7 +18,6 @@ interface GenerateOptions {
   userId?: string
   sessionId: string
   deviceInfo: any
-  conversationContext?: string[]
   timestamp?: string
   realTimeData?: {
     currentTime: string
@@ -61,8 +59,8 @@ class GroqAIService {
         model: groq("llama-3.1-8b-instant"),
         system: systemPrompt,
         prompt: userPrompt,
-        maxTokens: 1000,
-        temperature: 0.7,
+        maxTokens: 800,
+        temperature: 0.3,
       })
 
       const responseTime = Date.now() - startTime
@@ -70,7 +68,6 @@ class GroqAIService {
 
       // Analyze response for metadata
       const requiresHumanFollowup = this.analyzeHumanFollowupNeed(content)
-      const suggestedActions = this.extractSuggestedActions(content)
       const confidence = this.calculateConfidence(content, conversationHistory)
 
       return {
@@ -79,7 +76,6 @@ class GroqAIService {
         confidence,
         sources: ["groq-ai", "ruyaa-knowledge-base"],
         requiresHumanFollowup,
-        suggestedActions,
       }
     } catch (error) {
       console.error("Error generating AI response:", error)
@@ -106,13 +102,11 @@ class GroqAIService {
 مبادئ الرد:
 - كن مفيداً ومهذباً ومهنياً
 - استخدم اللغة العربية بطلاقة
-- قدم معلومات دقيقة عن خدماتنا
+- قدم معلومات دقيقة عن خدماتنا فقط
 - وجه العملاء للتواصل المباشر للتفاصيل المحددة
-- اقترح أسئلة متابعة مناسبة
-- تجنب ذكر أسعار محددة واطلب التواصل المباشر
-
-الوقت الحالي: ${options.realTimeData?.currentTime || "غير متوفر"}
-مدة الجلسة: ${options.realTimeData?.sessionDuration ? Math.floor(options.realTimeData.sessionDuration / 1000) + " ثانية" : "غير متوفر"}
+- تجنب ذكر أسعار محددة أو معلومات تقنية مفصلة
+- لا تقدم اقتراحات أو نصائح خارج نطاق خدماتنا
+- ركز على الإجابة المباشرة على السؤال المطروح
 
 تذكر: أنت تمثل رؤيا كابيتال وتهدف لمساعدة العملاء في فهم خدماتنا وتوجيههم للحصول على الحلول المناسبة.`
   }
@@ -124,14 +118,7 @@ class GroqAIService {
       prompt += `${message.role === "user" ? "العميل" : "المساعد"}: ${message.content}\n`
     })
 
-    if (options.conversationContext && options.conversationContext.length > 0) {
-      prompt += "\nسياق المحادثة السابق:\n"
-      options.conversationContext.forEach((context) => {
-        prompt += `- ${context}\n`
-      })
-    }
-
-    prompt += "\nيرجى الرد بطريقة مفيدة ومهنية، مع تقديم اقتراحات للأسئلة التالية إذا كان ذلك مناسباً."
+    prompt += "\nيرجى الرد بطريقة مفيدة ومهنية ومباشرة."
 
     return prompt
   }
@@ -143,40 +130,14 @@ class GroqAIService {
       "عرض سعر",
       "اتفاقية",
       "عقد",
-      "تفاصيل تقنية محددة",
+      "تفاصيل تقنية",
       "تخصيص",
-      "مشروع خاص",
+      "مشروع",
       "متطلبات خاصة",
+      "استشارة",
     ]
 
     return followupKeywords.some((keyword) => content.toLowerCase().includes(keyword.toLowerCase()))
-  }
-
-  private extractSuggestedActions(content: string): string[] {
-    const actions: string[] = []
-
-    if (content.includes("خدمات") || content.includes("حلول")) {
-      actions.push("أخبرني عن خدمة محددة")
-    }
-
-    if (content.includes("وكيل ذكي") || content.includes("تدريب")) {
-      actions.push("كيف يتم تدريب الوكيل؟")
-    }
-
-    if (content.includes("سعر") || content.includes("تكلفة")) {
-      actions.push("التواصل للحصول على عرض سعر")
-    }
-
-    if (content.includes("دعم") || content.includes("صيانة")) {
-      actions.push("ما هي خدمات الدعم المتاحة؟")
-    }
-
-    // Default actions if none detected
-    if (actions.length === 0) {
-      actions.push("أريد معرفة المزيد", "التحدث مع مختص")
-    }
-
-    return actions.slice(0, 3) // Limit to 3 actions
   }
 
   private calculateConfidence(content: string, conversationHistory: ConversationMessage[]): number {
