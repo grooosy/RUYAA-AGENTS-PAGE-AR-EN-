@@ -22,6 +22,14 @@ export default function Hero() {
   return (
     <>
       <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image src="/images/hero-bg.png" alt="Hero Background" fill className="object-cover opacity-30" priority />
+        </div>
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/70 via-black/50 to-black/70" />
+
         {/* Content */}
         <div className="relative z-20 container mx-auto px-4 text-center flex items-center justify-center min-h-screen">
           <motion.div
