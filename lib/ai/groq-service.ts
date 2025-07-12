@@ -44,3 +44,4 @@ Company info:
 }
 
 export const groqService = new GroqService()
+export const groqAI = groqService
