@@ -49,13 +49,14 @@ export default function ChatButton() {
 
             {/* Main chat button */}
             <Button
-              onClick={handleToggle}
+              onClick={() => setIsOpen(true)}
               className={`w-16 h-16 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 ${
                 isOpen
                   ? "bg-white text-black border-2 border-black hover:bg-gray-100"
                   : "bg-black text-white border-2 border-white hover:bg-gray-900"
               }`}
               aria-label="فتح المساعد الذكي"
+              size="lg"
             >
               <MessageCircle className="w-8 h-8" />
             </Button>
@@ -107,7 +108,7 @@ export default function ChatButton() {
         )}
       </div>
 
-      <AIAssistant isOpen={isOpen} onToggle={handleToggle} />
+      <AIAssistant isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>
   )
 }

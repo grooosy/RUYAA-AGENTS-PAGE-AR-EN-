@@ -8,19 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { groqService } from "@/lib/ai/groq-service"
-import { knowledgeManager } from "@/lib/ai/knowledge-manager"
 
 interface Message {
   id: string
   content: string
   role: "user" | "assistant"
   timestamp: Date
-  language?: "arabic" | "english"
-  confidence?: number
-  sources?: string[]
-  responseTime?: number
-  detectedLanguage?: "ar" | "en"
-  contextUnderstanding?: number
 }
 
 interface ConnectionStatus {
@@ -43,18 +36,9 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
     responseTime: 0,
     lastChecked: new Date(),
   })
-  const [isKnowledgeManagerOpen, setIsKnowledgeManagerOpen] = useState(false)
-  const [knowledgeBaseStatus, setKnowledgeBaseStatus] = useState<"loading" | "available" | "unavailable">("loading")
-  const [knowledgeItems, setKnowledgeItems] = useState<any[]>([])
-  const [conversationLanguage, setConversationLanguage] = useState<"ar" | "en">("ar")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [isMinimized, setIsMinimized] = useState(false)
-
-  // Check knowledge base availability
-  useEffect(() => {
-    checkKnowledgeBaseStatus()
-  }, [])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -88,21 +72,33 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
 
   // Focus input when opened
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isMinimized) {
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [isOpen])
+  }, [isOpen, isMinimized])
 
-  const checkKnowledgeBaseStatus = async () => {
-    try {
-      setKnowledgeBaseStatus("loading")
-      const items = await knowledgeManager.getKnowledgeItems({ limit: 1 })
-      setKnowledgeBaseStatus("available")
-    } catch (error) {
-      console.warn("Knowledge base not available:", error)
-      setKnowledgeBaseStatus("unavailable")
+  // Add welcome message when first opened
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        content: `مرحباً! أنا مساعدك الذكي من رؤيا كابيتال.
+
+أنا هنا لأساعدك في فهم:
+• ما هي الوكلاء الذكيين وكيف تعمل
+• كيف يمكن للوكلاء الذكيين تنفيذ مهام حقيقية
+• خدماتنا في تطوير حلول الذكاء الاصطناعي
+• كيف يمكن للذكاء الاصطناعي تحسين أعمالك
+
+الوكلاء الذكيين ليسوا مجرد روبوتات محادثة - بل هم مساعدين رقميين يمكنهم تنفيذ إجراءات حقيقية!
+
+كيف يمكنني مساعدتك اليوم؟`,
+        role: "assistant",
+        timestamp: new Date(),
+      }
+      setMessages([welcomeMessage])
     }
-  }
+  }, [isOpen, messages.length])
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
@@ -134,7 +130,12 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "أعتذر، حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى أو التواصل معنا مباشرة على الرقم: +966 11 234 5678",
+        content: `أعتذر، حدث خطأ في الاتصال. 
+
+يمكنك:
+• المحاولة مرة أخرى
+• التواصل معنا مباشرة على admin@ruyaacapital.com
+• استخدام زر الواتساب للتواصل الفوري`,
         role: "assistant",
         timestamp: new Date(),
       }
@@ -150,10 +151,6 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
       e.preventDefault()
       handleSendMessage()
     }
-  }
-
-  const onToggle = () => {
-    onClose()
   }
 
   if (!isOpen) return null
@@ -199,7 +196,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
                   {connectionStatus.status === "online"
                     ? "متصل ومتاح"
                     : connectionStatus.status === "degraded"
-                      ? "جاري الاتصال..."
+                      ? "اتصال بطيء"
                       : "غير متصل"}
                 </span>
               </div>
@@ -217,7 +214,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={onToggle}
+              onClick={onClose}
               className="w-10 h-10 text-white hover:bg-white hover:text-black rounded-full"
             >
               <X className="w-5 h-5" />
@@ -242,7 +239,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
                       <div className="flex items-start gap-2">
                         {message.role === "assistant" && <Bot className="w-4 h-4 mt-1 flex-shrink-0" />}
                         {message.role === "user" && <User className="w-4 h-4 mt-1 flex-shrink-0" />}
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                       </div>
                     </div>
                   </div>
@@ -275,16 +272,17 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
             <div className="min-h-[140px] p-4 border-t-2 border-white">
               <div className="flex gap-2">
                 <Input
+                  ref={inputRef}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="اكتب رسالتك هنا..."
                   className="flex-1 bg-gray-900 border-2 border-gray-600 text-white placeholder-gray-400 rounded-full px-4 py-3 focus:border-white focus:ring-0"
-                  disabled={isLoading}
+                  disabled={isLoading || connectionStatus.status === "offline"}
                 />
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!inputValue.trim() || isLoading}
+                  disabled={!inputValue.trim() || isLoading || connectionStatus.status === "offline"}
                   className="w-12 h-12 bg-white text-black hover:bg-gray-200 rounded-full flex-shrink-0 disabled:opacity-50"
                 >
                   <Send className="w-5 h-5" />
@@ -292,8 +290,8 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
               </div>
               <div className="mt-3 text-center">
                 <p className="text-gray-400 text-xs">
-                  للمساعدة الفورية، اتصل بنا على:
-                  <span className="text-white font-medium"> +966 11 234 5678</span>
+                  للتواصل المباشر:
+                  <span className="text-white font-medium"> admin@ruyaacapital.com</span>
                 </p>
               </div>
             </div>
