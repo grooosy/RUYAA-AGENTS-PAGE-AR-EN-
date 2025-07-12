@@ -417,15 +417,15 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
         boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)",
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-black">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <MessageCircle className="w-5 h-5 text-black" />
+      {/* Header - FIXED HEIGHT AND PROPER SPACING */}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800 bg-black min-h-[72px]">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="relative flex-shrink-0">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+              <MessageCircle className="w-6 h-6 text-black" />
             </div>
             <div
-              className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+              className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-black ${
                 connectionStatus === "online"
                   ? "bg-white"
                   : connectionStatus === "connecting"
@@ -434,44 +434,44 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               }`}
             />
           </div>
-          <div>
-            <h3 className="text-white font-semibold text-lg">مساعد رؤيا الذكي</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-semibold text-lg leading-tight">مساعد رؤيا الذكي</h3>
+            <div className="flex items-center gap-2 text-sm text-gray-300 mt-1">
               {connectionStatus === "online" ? (
                 <>
-                  <Wifi className="w-3 h-3" />
-                  متصل ومتاح
+                  <Wifi className="w-4 h-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">متصل ومتاح</span>
                 </>
               ) : connectionStatus === "connecting" ? (
                 <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  جاري الاتصال...
+                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                  <span className="whitespace-nowrap">جاري الاتصال...</span>
                 </>
               ) : (
                 <>
-                  <WifiOff className="w-3 h-3" />
-                  غير متصل
+                  <WifiOff className="w-4 h-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">غير متصل</span>
                 </>
               )}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             size="sm"
             variant="ghost"
             onClick={() => setIsMinimized(!isMinimized)}
-            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-8 h-8 p-0"
+            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
           >
-            {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+            {isMinimized ? <Maximize2 className="w-5 h-5" /> : <Minimize2 className="w-5 h-5" />}
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={onToggle}
-            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-8 h-8 p-0"
+            className="text-white hover:text-gray-300 hover:bg-gray-800 rounded-full w-10 h-10 p-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </Button>
         </div>
       </div>
@@ -482,7 +482,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
           <div
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto p-4 space-y-4 bg-black"
-            style={{ height: deviceInfo.isMobile ? "calc(90vh - 140px)" : "calc(600px - 140px)" }}
+            style={{ height: deviceInfo.isMobile ? "calc(90vh - 212px)" : "calc(600px - 212px)" }}
           >
             <AnimatePresence>
               {messages.map((message) => (
@@ -604,8 +604,8 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
             </div>
           )}
 
-          {/* Input */}
-          <div className="p-4 border-t border-gray-800 bg-black">
+          {/* Input - FIXED HEIGHT */}
+          <div className="p-4 border-t border-gray-800 bg-black min-h-[140px]">
             <div className="flex gap-3">
               <div className="flex-1 relative">
                 <Input
@@ -615,7 +615,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
                   onKeyPress={handleKeyPress}
                   placeholder={connectionStatus === "online" ? "اكتب رسالتك..." : "غير متصل..."}
                   disabled={isLoading || connectionStatus !== "online"}
-                  className="bg-gray-900 border border-gray-700 text-white placeholder-gray-400 pr-12 pl-4 py-3 rounded-full focus:ring-2 focus:ring-white focus:border-white"
+                  className="bg-gray-900 border border-gray-700 text-white placeholder-gray-400 pr-12 pl-4 py-3 rounded-full focus:ring-2 focus:ring-white focus:border-white h-12"
                   dir="rtl"
                 />
                 {messages.length > 1 && (
@@ -633,7 +633,7 @@ export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading || connectionStatus !== "online"}
-                className="bg-white hover:bg-gray-200 disabled:opacity-50 text-black rounded-full w-12 h-12 p-0 flex items-center justify-center"
+                className="bg-white hover:bg-gray-200 disabled:opacity-50 text-black rounded-full w-12 h-12 p-0 flex items-center justify-center flex-shrink-0"
               >
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
               </Button>
