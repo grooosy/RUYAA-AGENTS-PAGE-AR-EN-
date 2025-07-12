@@ -40,6 +40,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
+        {/* Botpress Chat Widget */}
+        <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js" defer></script>
+        <script src="https://files.bpcontent.cloud/2025/07/12/04/20250712041757-PYMKN5OE.js" defer></script>
       </body>
     </html>
   )
