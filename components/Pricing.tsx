@@ -127,65 +127,65 @@ export default function Pricing() {
 
   const services = [
     {
-      title: "Basic AI Assistant",
-      description: "Essential AI-powered customer support and appointment management for small businesses",
+      title: t("services.aiSupport.title"),
+      description: t("services.aiSupport.description"),
       price: "$249",
       period: "/month",
       features: [
-        "AI Customer Support Agent",
-        "Appointment Scheduling System",
-        "Basic Follow-up Automation",
-        "Email Integration",
-        "Standard Analytics Dashboard",
-        "Business Hours Support",
+        t("services.aiSupport.feature1"),
+        t("services.aiSupport.feature2"),
+        t("services.aiSupport.feature3"),
+        "تكامل البريد الإلكتروني",
+        "لوحة تحكم أساسية",
+        "دعم ساعات العمل",
       ],
       popular: false,
     },
     {
-      title: "Professional Suite",
-      description: "Advanced sales automation with CRM integration and lead management for growing businesses",
+      title: t("services.salesAutomation.title"),
+      description: t("services.salesAutomation.description"),
       price: "$449",
       period: "/month",
       features: [
-        "Everything in Basic Plan",
-        "Advanced Sales Automation",
-        "Lead Qualification & Scoring",
-        "CRM Integration (Salesforce, HubSpot)",
-        "Multi-channel Communication",
-        "Advanced Analytics & Reporting",
-        "Priority Support",
+        "كل ما في الخطة الأساسية",
+        t("services.salesAutomation.feature1"),
+        t("services.salesAutomation.feature2"),
+        t("services.salesAutomation.feature3"),
+        "تواصل متعدد القنوات",
+        "تقارير وتحليلات متقدمة",
+        "دعم أولوية",
       ],
       popular: true,
     },
     {
-      title: "Premium Enterprise",
-      description: "Complete AI solution with social media management and content generation for enterprises",
+      title: t("services.socialMedia.title"),
+      description: t("services.socialMedia.description"),
       price: "$749",
       period: "/month",
       features: [
-        "Everything in Professional Plan",
-        "Social Media Management",
-        "AI Content Generation",
-        "Advanced Workflow Automation",
-        "Custom Integrations",
-        "Dedicated Account Manager",
-        "24/7 Premium Support",
+        "كل ما في الخطة المهنية",
+        t("services.socialMedia.feature1"),
+        t("services.socialMedia.feature2"),
+        "أتمتة سير العمل المتقدمة",
+        "تكاملات مخصصة",
+        "مدير حساب مخصص",
+        "دعم متميز 24/7",
       ],
       popular: false,
     },
     {
-      title: "Custom Enterprise",
-      description: "Fully customized AI solutions tailored to your specific business requirements",
-      price: "Custom",
-      period: "pricing",
+      title: t("services.customerService.title"),
+      description: t("services.customerService.description"),
+      price: "مخصص",
+      period: "التسعير",
       features: [
-        "Fully Customized AI Solutions",
-        "Unlimited Integrations",
-        "Custom Feature Development",
-        "Dedicated Development Team",
-        "On-premise Deployment Options",
-        "Enterprise-grade Security",
-        "White-label Solutions",
+        t("services.customerService.feature1"),
+        t("services.customerService.feature2"),
+        t("services.customerService.feature3"),
+        "فريق تطوير مخصص",
+        "خيارات النشر المحلي",
+        "أمان على مستوى المؤسسة",
+        "حلول العلامة البيضاء",
       ],
       popular: false,
     },
@@ -231,19 +231,21 @@ export default function Pricing() {
             >
               {service.popular && (
                 <div className="absolute top-0 left-0 right-0 bg-gray-700 text-white text-center py-2 text-sm font-medium">
-                  Most Popular
+                  {isRTL ? "الأكثر شعبية" : "Most Popular"}
                 </div>
               )}
 
               <div className="p-6">
                 <div className="mb-6">
-                  <h3 className={`text-xl font-bold text-white mb-2 ${isRTL ? "font-arabic" : ""}`}>{service.title}</h3>
+                  <h3 className={`text-xl font-bold text-white mb-2 ${isRTL ? "font-arabic text-right" : ""}`}>
+                    {service.title}
+                  </h3>
                   <p className={`text-gray-300 text-sm leading-relaxed ${isRTL ? "font-arabic text-right" : ""}`}>
                     {service.description}
                   </p>
                 </div>
 
-                <div className="mb-6">
+                <div className={`mb-6 ${isRTL ? "text-right" : ""}`}>
                   <div className="text-3xl font-bold text-white">
                     {service.price}
                     <span className="text-lg text-gray-400 font-normal">{service.period}</span>
@@ -252,7 +254,10 @@ export default function Pricing() {
 
                 <div className="space-y-3 mb-6">
                   {service.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                    <div
+                      key={featureIndex}
+                      className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse text-right" : ""}`}
+                    >
                       <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
                       <span className={`text-gray-400 text-sm ${isRTL ? "font-arabic" : ""}`}>{feature}</span>
                     </div>
@@ -261,10 +266,16 @@ export default function Pricing() {
 
                 <Button
                   variant={service.popular ? "primary" : "outline"}
-                  className={`w-full ${service.popular ? "bg-slate-900 hover:bg-slate-800" : "border-gray-600 text-white hover:bg-gray-800"}`}
+                  className={`w-full ${service.popular ? "bg-slate-900 hover:bg-slate-800" : "border-gray-600 text-white hover:bg-gray-800"} ${isRTL ? "font-arabic" : ""}`}
                   onClick={() => setIsAuthModalOpen(true)}
                 >
-                  {service.price === "Custom" ? "Contact Sales" : "Get Started"}
+                  {service.price === "مخصص" || service.price === "Custom"
+                    ? isRTL
+                      ? "تواصل مع المبيعات"
+                      : "Contact Sales"
+                    : isRTL
+                      ? "ابدأ الآن"
+                      : "Get Started"}
                 </Button>
               </div>
             </motion.div>
@@ -284,10 +295,12 @@ export default function Pricing() {
         >
           <div className="p-8 lg:p-12 text-center">
             <h3 className={`text-2xl font-bold text-white mb-4 ${isRTL ? "font-arabic" : ""}`}>
-              Ready to Get Started?
+              {isRTL ? "هل أنت مستعد للبدء؟" : "Ready to Get Started?"}
             </h3>
             <p className={`text-gray-300 mb-8 max-w-2xl mx-auto ${isRTL ? "font-arabic" : ""}`}>
-              Contact us today to discuss your specific requirements and get a customized solution for your business.
+              {isRTL
+                ? "تواصل معنا اليوم لمناقشة متطلباتك المحددة والحصول على حل مخصص لعملك."
+                : "Contact us today to discuss your specific requirements and get a customized solution for your business."}
             </p>
 
             <div className="flex flex-wrap gap-4 justify-center">
