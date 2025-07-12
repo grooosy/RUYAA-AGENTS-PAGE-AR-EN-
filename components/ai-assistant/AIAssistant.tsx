@@ -14,10 +14,10 @@ interface Message {
 
 interface AIAssistantProps {
   isOpen: boolean
-  onClose: () => void
+  onToggle: () => void
 }
 
-export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
+export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -75,7 +75,7 @@ export default function AIAssistant({ isOpen, onClose }: AIAssistantProps) {
       <div className="bg-white rounded-lg w-full max-w-md h-[500px] flex flex-col border-2 border-black">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-black text-white">
           <h3 className="font-bold">مساعد رؤيا الذكي</h3>
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-white hover:bg-gray-800">
+          <Button variant="ghost" size="sm" onClick={onToggle} className="text-white hover:bg-gray-800">
             <X className="h-4 w-4" />
           </Button>
         </div>

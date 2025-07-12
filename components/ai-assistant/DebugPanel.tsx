@@ -31,13 +31,16 @@ export default function DebugPanel() {
     supabase: false,
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
-  const collectSystemInfo = (): SystemInfo => {
+  const collectSystemInfo = (): SystemInfo | null => {
+    if (typeof window === "undefined") return null
+
     return {
       userAgent: navigator.userAgent,
       platform: navigator.platform,
       language: navigator.language,
-      screenResolution: `${screen.width}x${screen.height}`,
+      screenResolution: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
       timestamp: new Date().toISOString(),
     }
@@ -88,12 +91,13 @@ export default function DebugPanel() {
   }
 
   useEffect(() => {
+    setIsMounted(true)
     setSystemInfo(collectSystemInfo())
     checkConnections()
   }, [])
 
   // Only show in development
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" || !isMounted) {
     return null
   }
 

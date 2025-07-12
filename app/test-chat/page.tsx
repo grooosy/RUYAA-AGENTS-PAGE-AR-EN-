@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,45 @@ export default function TestChatPage() {
     "كيف يمكنني البدء؟",
     "هل يدعم اللغة العربية؟",
   ])
+  const [browserInfo, setBrowserInfo] = useState({
+    userAgent: "",
+    platform: "",
+    language: "",
+    online: false,
+  })
+  const [screenInfo, setScreenInfo] = useState({
+    width: 0,
+    height: 0,
+    innerWidth: 0,
+    innerHeight: 0,
+    pixelRatio: 1,
+    touchSupport: false,
+  })
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Only access browser APIs after component has mounted
+  useEffect(() => {
+    setIsMounted(true)
+
+    // Now it's safe to access browser APIs
+    if (typeof window !== "undefined") {
+      setBrowserInfo({
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        online: navigator.onLine,
+      })
+
+      setScreenInfo({
+        width: window.screen?.width || 0,
+        height: window.screen?.height || 0,
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        pixelRatio: window.devicePixelRatio,
+        touchSupport: "ontouchstart" in window,
+      })
+    }
+  }, [])
 
   return (
     <AuthProvider>
@@ -72,8 +111,10 @@ export default function TestChatPage() {
                         setIsAIAssistantOpen(true)
                         // Simulate typing the message
                         setTimeout(() => {
-                          const event = new CustomEvent("test-message", { detail: message })
-                          window.dispatchEvent(event)
+                          if (typeof window !== "undefined") {
+                            const event = new CustomEvent("test-message", { detail: message })
+                            window.dispatchEvent(event)
+                          }
                         }, 500)
                       }}
                       className="text-xs h-auto py-2 px-3 whitespace-normal"
@@ -86,7 +127,7 @@ export default function TestChatPage() {
             </Card>
 
             {/* Compatibility Tests */}
-            <ChatTester />
+            {isMounted && <ChatTester />}
 
             {/* Device Information */}
             <Card>
@@ -98,23 +139,31 @@ export default function TestChatPage() {
                   <div>
                     <h4 className="font-semibold mb-2">Browser Info</h4>
                     <div className="space-y-1 text-gray-600">
-                      <div>User Agent: {navigator.userAgent.substring(0, 50)}...</div>
-                      <div>Platform: {navigator.platform}</div>
-                      <div>Language: {navigator.language}</div>
-                      <div>Online: {navigator.onLine ? "Yes" : "No"}</div>
+                      {isMounted && (
+                        <>
+                          <div>User Agent: {browserInfo.userAgent.substring(0, 50)}...</div>
+                          <div>Platform: {browserInfo.platform}</div>
+                          <div>Language: {browserInfo.language}</div>
+                          <div>Online: {browserInfo.online ? "Yes" : "No"}</div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">Screen Info</h4>
                     <div className="space-y-1 text-gray-600">
-                      <div>
-                        Screen: {screen.width}×{screen.height}
-                      </div>
-                      <div>
-                        Viewport: {window.innerWidth}×{window.innerHeight}
-                      </div>
-                      <div>Device Pixel Ratio: {window.devicePixelRatio}</div>
-                      <div>Touch Support: {"ontouchstart" in window ? "Yes" : "No"}</div>
+                      {isMounted && (
+                        <>
+                          <div>
+                            Screen: {screenInfo.width}×{screenInfo.height}
+                          </div>
+                          <div>
+                            Viewport: {screenInfo.innerWidth}×{screenInfo.innerHeight}
+                          </div>
+                          <div>Device Pixel Ratio: {screenInfo.pixelRatio}</div>
+                          <div>Touch Support: {screenInfo.touchSupport ? "Yes" : "No"}</div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -159,10 +208,12 @@ export default function TestChatPage() {
           </div>
 
           {/* AI Assistant */}
-          <AIAssistant isOpen={isAIAssistantOpen} onToggle={() => setIsAIAssistantOpen(!isAIAssistantOpen)} />
+          {isMounted && (
+            <AIAssistant isOpen={isAIAssistantOpen} onToggle={() => setIsAIAssistantOpen(!isAIAssistantOpen)} />
+          )}
 
           {/* Debug Panel (only in development) */}
-          <DebugPanel />
+          {isMounted && <DebugPanel />}
 
           {/* Toast notifications */}
           <Toaster position="top-right" richColors closeButton />

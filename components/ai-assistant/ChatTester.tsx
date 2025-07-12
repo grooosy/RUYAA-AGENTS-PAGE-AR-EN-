@@ -1,200 +1,89 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import AIAssistant from "@/components/ai-assistant/AIAssistant"
-import DebugPanel from "@/components/ai-assistant/DebugPanel"
-import { AuthProvider } from "@/lib/auth/auth-context"
-import { LanguageProvider } from "@/contexts/LanguageContext"
-import { Toaster } from "sonner"
-import Badge from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
-export default function AIAssistantTester() {
-  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
-  const [testMessages] = useState([
-    "مرحبا",
-    "ما هي خدماتكم؟",
-    "كم تكلفة الوكيل الذكي؟",
-    "كيف يعمل الوكيل الذكي؟",
-    "ما هي فوائد الوكيل الذكي؟",
-    "أريد معرفة المزيد عن وكيل الدعم",
-    "كيف يمكنني البدء؟",
-    "هل يدعم اللغة العربية؟",
-  ])
+export default function ChatTester() {
+  const [isMounted, setIsMounted] = useState(false)
+  const [browserFeatures, setBrowserFeatures] = useState({
+    webSpeech: false,
+    webRTC: false,
+    webWorkers: false,
+    localStorage: false,
+    indexedDB: false,
+  })
+
+  useEffect(() => {
+    setIsMounted(true)
+
+    // Check browser features only after component has mounted
+    if (typeof window !== "undefined") {
+      setBrowserFeatures({
+        webSpeech: "SpeechRecognition" in window || "webkitSpeechRecognition" in window,
+        webRTC: "RTCPeerConnection" in window,
+        webWorkers: "Worker" in window,
+        localStorage: "localStorage" in window,
+        indexedDB: "indexedDB" in window,
+      })
+    }
+  }, [])
+
+  if (!isMounted) {
+    return null
+  }
 
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <div className="min-h-screen bg-gray-50 p-4">
-          <div className="max-w-6xl mx-auto space-y-6">
-            {/* Header */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>AI Assistant Testing Page</span>
-                  <Badge variant="outline">Development</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  This page is designed for testing the AI assistant functionality across different devices and
-                  scenarios.
-                </p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsAIAssistantOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                    Open AI Assistant
-                  </Button>
-                  <Button variant="outline" onClick={() => window.location.reload()}>
-                    Reload Page
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Test Messages */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Test Messages</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Click these buttons to quickly test different conversation scenarios:
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {testMessages.map((message, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsAIAssistantOpen(true)
-                        // Simulate typing the message
-                        setTimeout(() => {
-                          const event = new CustomEvent("test-message", { detail: message })
-                          window.dispatchEvent(event)
-                        }, 500)
-                      }}
-                      className="text-xs h-auto py-2 px-3 whitespace-normal"
-                    >
-                      {message}
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Compatibility Tests */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Compatibility Tests</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Test the AI assistant across different browsers and devices to ensure compatibility.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Browser Compatibility</h4>
-                    <ul className="list-disc list-inside space-y-1 text-gray-600">
-                      <li>Chrome</li>
-                      <li>Firefox</li>
-                      <li>Safari</li>
-                      <li>Edge</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Device Compatibility</h4>
-                    <ul className="list-disc list-inside space-y-1 text-gray-600">
-                      <li>Desktop</li>
-                      <li>Mobile</li>
-                      <li>Tablet</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Device Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Device Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <h4 className="font-semibold mb-2">Browser Info</h4>
-                    <div className="space-y-1 text-gray-600">
-                      <div>User Agent: {navigator.userAgent.substring(0, 50)}...</div>
-                      <div>Platform: {navigator.platform}</div>
-                      <div>Language: {navigator.language}</div>
-                      <div>Online: {navigator.onLine ? "Yes" : "No"}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Screen Info</h4>
-                    <div className="space-y-1 text-gray-600">
-                      <div>
-                        Screen: {screen.width}×{screen.height}
-                      </div>
-                      <div>
-                        Viewport: {window.innerWidth}×{window.innerHeight}
-                      </div>
-                      <div>Device Pixel Ratio: {window.devicePixelRatio}</div>
-                      <div>Touch Support: {"ontouchstart" in window ? "Yes" : "No"}</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Testing Instructions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Testing Instructions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Manual Testing Steps:</h4>
-                    <ol className="list-decimal list-inside space-y-1 text-gray-600">
-                      <li>Open the AI assistant using the button above</li>
-                      <li>Try sending different types of messages</li>
-                      <li>Test on different screen sizes (resize browser window)</li>
-                      <li>Test with network disconnected (go offline)</li>
-                      <li>Test keyboard shortcuts (Enter to send, Escape to close)</li>
-                      <li>Test touch interactions on mobile devices</li>
-                      <li>Verify error handling by sending very long messages</li>
-                      <li>Check message status indicators</li>
-                    </ol>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold mb-2">Expected Behavior:</h4>
-                    <ul className="list-disc list-inside space-y-1 text-gray-600">
-                      <li>Chat should open smoothly with welcome message</li>
-                      <li>Messages should send and receive properly</li>
-                      <li>UI should be responsive on all screen sizes</li>
-                      <li>Error states should be handled gracefully</li>
-                      <li>Offline mode should show appropriate messages</li>
-                      <li>Keyboard navigation should work properly</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle>Browser Compatibility</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <p className="text-gray-600 mb-2">
+            This section shows browser features that may affect AI assistant functionality:
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Web Speech API</span>
+              <Badge variant={browserFeatures.webSpeech ? "default" : "outline"}>
+                {browserFeatures.webSpeech ? "Supported" : "Not Supported"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">WebRTC</span>
+              <Badge variant={browserFeatures.webRTC ? "default" : "outline"}>
+                {browserFeatures.webRTC ? "Supported" : "Not Supported"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Web Workers</span>
+              <Badge variant={browserFeatures.webWorkers ? "default" : "outline"}>
+                {browserFeatures.webWorkers ? "Supported" : "Not Supported"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Local Storage</span>
+              <Badge variant={browserFeatures.localStorage ? "default" : "outline"}>
+                {browserFeatures.localStorage ? "Supported" : "Not Supported"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">IndexedDB</span>
+              <Badge variant={browserFeatures.indexedDB ? "default" : "outline"}>
+                {browserFeatures.indexedDB ? "Supported" : "Not Supported"}
+              </Badge>
+            </div>
           </div>
 
-          {/* AI Assistant */}
-          <AIAssistant isOpen={isAIAssistantOpen} onToggle={() => setIsAIAssistantOpen(!isAIAssistantOpen)} />
-
-          {/* Debug Panel (only in development) */}
-          <DebugPanel />
-
-          {/* Toast notifications */}
-          <Toaster position="top-right" richColors closeButton />
+          <div className="mt-4">
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              Refresh Compatibility Check
+            </Button>
+          </div>
         </div>
-      </LanguageProvider>
-    </AuthProvider>
+      </CardContent>
+    </Card>
   )
 }
