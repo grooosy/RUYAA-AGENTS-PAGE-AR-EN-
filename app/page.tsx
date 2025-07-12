@@ -1,57 +1,83 @@
-import { AuthProvider } from "@/lib/auth/auth-context"
-import { LanguageProvider } from "@/contexts/LanguageContext"
-import Header from "@/components/Header"
+"use client"
+
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import Hero from "@/components/Hero"
 import Features from "@/components/Features"
 import Pricing from "@/components/Pricing"
 import Footer from "@/components/Footer"
-import VoiceflowChat from "@/components/VoiceflowChat"
+import Header from "@/components/Header"
+import AIAssistant from "@/components/ai-assistant/AIAssistant"
+import ChatButton from "@/components/ai-assistant/ChatButton"
+import { AuthProvider } from "@/lib/auth/auth-context"
+import { LanguageProvider } from "@/contexts/LanguageContext"
 import { Toaster } from "sonner"
 
 export default function Home() {
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+        event.preventDefault()
+        setIsChatOpen((prev) => !prev)
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
+  const toggleChat = () => {
+    setIsChatOpen((prev) => !prev)
+    setUnreadCount(0)
+  }
+
+  if (!mounted) {
+    return null
+  }
+
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <div className="min-h-screen bg-black text-white relative overflow-x-hidden">
-          {/* Optimized Background */}
-          <div className="fixed inset-0 z-0">
-            <div
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url('/images/network-bg.png')`,
-                backgroundAttachment: "fixed",
-              }}
-            />
-            <div className="absolute inset-0 bg-black/30" />
-          </div>
+    <AuthProvider>
+      <LanguageProvider>
+        <div className="min-h-screen bg-black text-white">
+          <Header />
+          <motion.main
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="relative"
+          >
+            <Hero />
+            <Features />
+            <Pricing />
+          </motion.main>
+          <Footer />
 
-          <div className="relative z-10">
-            <Header />
-            <main>
-              <Hero />
-              <Features />
-              <Pricing />
-            </main>
-            <Footer />
-          </div>
+          <ChatButton onClick={toggleChat} isOpen={isChatOpen} unreadCount={unreadCount} />
 
-          {/* Voiceflow Chat Widget */}
-          <VoiceflowChat />
+          <AIAssistant isOpen={isChatOpen} onToggle={toggleChat} />
 
-          {/* Toast Notifications */}
           <Toaster
-            position="top-right"
-            theme="dark"
+            position="top-center"
             toastOptions={{
               style: {
-                background: "#1f2937",
-                border: "1px solid #374151",
-                color: "#f9fafb",
+                background: "rgba(15, 23, 42, 0.95)",
+                color: "white",
+                border: "1px solid rgba(148, 163, 184, 0.2)",
+                backdropFilter: "blur(10px)",
               },
             }}
           />
         </div>
-      </AuthProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </AuthProvider>
   )
 }
