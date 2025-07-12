@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Moon, Sun, Menu, X, Globe } from "lucide-react"
+import { Moon, Sun, Menu, X, Globe } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import Image from "next/image"
@@ -120,7 +120,8 @@ export default function Header() {
               ) : (
                 <Button
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="px-4 py-2 rounded-lg font-medium transition-all duration-300 bg-slate-900 hover:bg-slate-800 text-white"
+                  variant="primary"
+                  className="px-4 py-2 rounded-lg font-medium transition-all duration-300"
                 >
                   {t("auth.signIn")}
                 </Button>
@@ -164,7 +165,8 @@ export default function Header() {
                       setIsAuthModalOpen(true)
                       setIsMenuOpen(false)
                     }}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white"
+                    variant="primary"
+                    className="w-full"
                   >
                     {t("auth.signIn")}
                   </Button>

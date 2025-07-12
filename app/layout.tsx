@@ -1,22 +1,22 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
-import { LanguageProvider } from "@/contexts/LanguageContext"
-import { AuthProvider } from "@/lib/auth/auth-context"
-import { Toaster } from "@/components/ui/sonner"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Ruyaa Capital - AI Solutions for Business",
-  description:
-    "Transform your business with advanced AI solutions. Customer support, appointment management, sales automation, and more.",
-  keywords:
-    "AI, artificial intelligence, business automation, customer support, appointment management, sales automation",
+  title: "Ruyaa Capital - AI-Powered Financial Solutions",
+  description: "Advanced AI-powered financial solutions to enhance your business efficiency and growth",
+  keywords: "AI, financial services, automation, investment, Arabic, fintech",
   authors: [{ name: "Ruyaa Capital" }],
   viewport: "width=device-width, initial-scale=1",
-    generator: 'v0.dev'
+  robots: "index, follow",
+  openGraph: {
+    title: "Ruyaa Capital - AI-Powered Financial Solutions",
+    description: "Advanced AI-powered financial solutions to enhance your business efficiency and growth",
+    type: "website",
+    locale: "ar_SA",
+    alternateLocale: "en_US",
+  },
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -25,15 +25,27 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <AuthProvider>
-          <LanguageProvider>
-            {children}
-            <Toaster />
-          </LanguageProvider>
-        </AuthProvider>
-      </body>
+    <html lang="ar" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+          media="print"
+          onLoad={(e) => {
+            const target = e.target as HTMLLinkElement
+            target.media = "all"
+          }}
+        />
+        <noscript>
+          <link
+            href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap"
+            rel="stylesheet"
+          />
+        </noscript>
+      </head>
+      <body className="min-h-screen text-white antialiased">{children}</body>
     </html>
   )
 }

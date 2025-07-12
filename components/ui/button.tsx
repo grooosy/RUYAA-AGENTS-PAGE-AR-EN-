@@ -9,16 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-slate-900 text-slate-50 hover:bg-slate-800 shadow-lg",
-        destructive: "bg-red-500 text-slate-50 hover:bg-red-600",
+        default:
+          "bg-gray-800 text-gray-100 hover:bg-gray-700 border border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300",
+        destructive: "bg-red-900 text-red-100 hover:bg-red-800 border border-red-700",
         outline:
-          "border border-slate-200 bg-transparent hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-50",
-        secondary:
-          "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700",
-        ghost: "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50",
-        link: "text-slate-900 underline-offset-4 hover:underline dark:text-slate-50",
+          "border-2 border-gray-600 bg-transparent text-gray-300 hover:bg-gray-800 hover:text-gray-100 hover:border-gray-500 transition-all duration-300",
+        secondary: "bg-gray-700 text-gray-200 hover:bg-gray-600 border border-gray-500",
+        ghost: "hover:bg-gray-800 hover:text-gray-100 text-gray-300 transition-all duration-200",
+        link: "text-gray-400 underline-offset-4 hover:underline hover:text-gray-200",
         primary:
-          "bg-slate-900 text-white hover:bg-slate-800 shadow-lg transform hover:scale-105 transition-all duration-200",
+          "bg-gradient-to-r from-gray-700 to-gray-800 text-gray-100 hover:from-gray-600 hover:to-gray-700 border border-gray-500 shadow-lg hover:shadow-xl transition-all duration-300",
+        accent:
+          "bg-gradient-to-r from-slate-700 to-slate-800 text-slate-100 hover:from-slate-600 hover:to-slate-700 border border-slate-500 shadow-lg hover:shadow-xl transition-all duration-300",
       },
       size: {
         default: "h-10 px-4 py-2",

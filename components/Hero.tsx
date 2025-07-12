@@ -22,6 +22,9 @@ export default function Hero() {
   return (
     <>
       <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/30 via-black/10 to-black/30" />
+
         {/* Content */}
         <div className="relative z-20 container mx-auto px-4 text-center flex items-center justify-center min-h-screen">
           <motion.div
@@ -44,11 +47,13 @@ export default function Hero() {
                 className="drop-shadow-2xl"
               />
             </motion.div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-white leading-tight text-shadow-lg">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-white leading-tight drop-shadow-2xl">
               {t("hero.title")}
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-100 mb-12 leading-relaxed text-shadow">{t("hero.subtitle")}</p>
+            <p className="text-xl md:text-2xl text-gray-200 mb-12 leading-relaxed drop-shadow-lg">
+              {t("hero.subtitle")}
+            </p>
 
             <div className="flex flex-col items-center gap-6">
               {/* Main Action Buttons */}
@@ -56,14 +61,15 @@ export default function Hero() {
                 <Button
                   onClick={handleLoginClick}
                   size="lg"
-                  className="px-8 py-4 text-lg font-semibold min-w-[200px] bg-slate-900 hover:bg-slate-800 text-white shadow-2xl hover:shadow-gray-900/50 transition-all duration-300"
+                  variant="primary"
+                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-900/50 transition-all duration-300"
                 >
                   {t("hero.loginButton")}
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-800/50 transition-all duration-300 bg-transparent border-white/30 hover:border-white/50 text-white hover:bg-white/10"
+                  className="px-8 py-4 text-lg font-semibold min-w-[200px] shadow-2xl hover:shadow-gray-800/50 transition-all duration-300 bg-transparent"
                 >
                   {t("hero.supportButton")}
                 </Button>
