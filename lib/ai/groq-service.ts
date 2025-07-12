@@ -1,8 +1,5 @@
-import Groq from "groq-sdk"
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-})
+import { groq } from "@ai-sdk/groq"
+import { generateText } from "ai"
 
 interface MessageAnalysis {
   language: "ar" | "en"
@@ -18,6 +15,8 @@ interface AIResponse {
 }
 
 class GroqService {
+  private model = groq("llama-3.1-8b-instant")
+
   private analyzeMessage(message: string): MessageAnalysis {
     // Detect language
     const arabicPattern = /[\u0600-\u06FF]/
@@ -95,18 +94,16 @@ Company Info:
 - This is a separate demo site from main business`
 
     try {
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
-        model: "llama-3.1-8b-instant",
+      const { text } = await generateText({
+        model: this.model,
+        system: systemPrompt,
+        prompt: message,
+        maxTokens: 400,
         temperature: 0.7,
-        max_tokens: 400,
       })
 
       const responseMessage =
-        completion.choices[0]?.message?.content ||
+        text ||
         (analysis.language === "ar" ? "عذراً، حدث خطأ. جرب مرة تانية." : "Sorry, an error occurred. Please try again.")
 
       return {
@@ -131,15 +128,39 @@ Company Info:
 
   async testConnection(): Promise<boolean> {
     try {
-      const completion = await groq.chat.completions.create({
-        messages: [{ role: "user", content: "test" }],
-        model: "llama-3.1-8b-instant",
-        max_tokens: 10,
+      const { text } = await generateText({
+        model: this.model,
+        prompt: "test",
+        maxTokens: 10,
       })
-      return !!completion.choices[0]?.message?.content
+      return !!text
     } catch (error) {
       console.error("Groq connection test failed:", error)
       return false
+    }
+  }
+
+  async checkHealth(): Promise<{
+    status: "online" | "offline" | "degraded"
+    responseTime: number
+    lastChecked: Date
+  }> {
+    const startTime = Date.now()
+    try {
+      const isOnline = await this.testConnection()
+      const responseTime = Date.now() - startTime
+
+      return {
+        status: isOnline ? (responseTime > 5000 ? "degraded" : "online") : "offline",
+        responseTime,
+        lastChecked: new Date(),
+      }
+    } catch (error) {
+      return {
+        status: "offline",
+        responseTime: Date.now() - startTime,
+        lastChecked: new Date(),
+      }
     }
   }
 }
