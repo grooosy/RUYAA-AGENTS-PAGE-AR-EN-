@@ -1,203 +1,215 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { Bot, MessageSquare, Zap, Activity } from "lucide-react"
 import Image from "next/image"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Bot, Brain, Zap, Shield, TrendingUp, Users, Clock, Target, Sparkles, ArrowRight } from "lucide-react"
 
 export default function Features() {
-  const { t, language, isRTL } = useLanguage()
-  const cardRef = useRef<HTMLDivElement>(null)
-  const floatingAnimationRef = useRef<number>()
+  const { language } = useLanguage()
 
-  useEffect(() => {
-    const card = cardRef.current
-    if (!card) return
+  const features = [
+    {
+      icon: Bot,
+      title: language === "ar" ? "مساعد ذكي متقدم" : "Advanced AI Assistant",
+      description:
+        language === "ar"
+          ? "مساعد ذكي يفهم احتياجاتك ويقدم حلولاً مخصصة لأعمالك"
+          : "Intelligent assistant that understands your needs and provides customized business solutions",
+      image: "/images/ai-assistant.png",
+      badge: language === "ar" ? "جديد" : "New",
+      color: "from-blue-500 to-cyan-500",
+    },
+    {
+      icon: Brain,
+      title: language === "ar" ? "تحليل البيانات الذكي" : "Smart Data Analysis",
+      description:
+        language === "ar"
+          ? "تحليل متقدم للبيانات لاستخراج رؤى قيمة تساعد في اتخاذ القرارات"
+          : "Advanced data analysis to extract valuable insights for decision making",
+      image: "/images/smart-dashboard.png",
+      badge: language === "ar" ? "محدث" : "Updated",
+      color: "from-purple-500 to-pink-500",
+    },
+    {
+      icon: Zap,
+      title: language === "ar" ? "أتمتة العمليات" : "Process Automation",
+      description:
+        language === "ar"
+          ? "أتمتة المهام المتكررة لزيادة الكفاءة وتوفير الوقت والجهد"
+          : "Automate repetitive tasks to increase efficiency and save time and effort",
+      image: "/images/business-management-team.png",
+      badge: language === "ar" ? "شائع" : "Popular",
+      color: "from-green-500 to-emerald-500",
+    },
+    {
+      icon: Shield,
+      title: language === "ar" ? "أمان متقدم" : "Advanced Security",
+      description:
+        language === "ar"
+          ? "حماية متقدمة لبياناتك مع أعلى معايير الأمان والخصوصية"
+          : "Advanced protection for your data with the highest security and privacy standards",
+      image: "/images/specialized-agent.png",
+      badge: language === "ar" ? "آمن" : "Secure",
+      color: "from-red-500 to-orange-500",
+    },
+    {
+      icon: TrendingUp,
+      title: language === "ar" ? "تحليل الاستثمار" : "Investment Analysis",
+      description:
+        language === "ar"
+          ? "تحليل متقدم للفرص الاستثمارية مع توصيات مدعومة بالذكاء الاصطناعي"
+          : "Advanced analysis of investment opportunities with AI-powered recommendations",
+      image: "/images/investment-solutions.png",
+      badge: language === "ar" ? "ذكي" : "Smart",
+      color: "from-yellow-500 to-amber-500",
+    },
+    {
+      icon: Users,
+      title: language === "ar" ? "إدارة العملاء" : "Customer Management",
+      description:
+        language === "ar"
+          ? "نظام متقدم لإدارة العملاء وتحسين تجربة الخدمة"
+          : "Advanced system for customer management and service experience improvement",
+      image: "/images/customer-service-agent.png",
+      badge: language === "ar" ? "فعال" : "Effective",
+      color: "from-indigo-500 to-purple-500",
+    },
+  ]
 
-    // Check if device is mobile or has reduced motion preference
-    const isMobile = window.innerWidth <= 768
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
 
-    if (isMobile || prefersReducedMotion) {
-      // Simple mobile-friendly animations
-      card.style.animation = "subtleFloat 4s ease-in-out infinite"
-      return
-    }
-
-    let isHovering = false
-    let animationId: number
-    let currentRotateX = 0
-    let currentRotateY = 0
-    let currentScale = 1
-    let targetRotateX = 0
-    let targetRotateY = 0
-    let targetScale = 1
-    let floatingOffset = 0
-
-    // Floating animation
-    const startFloating = () => {
-      const animate = (timestamp: number) => {
-        if (!isHovering) {
-          floatingOffset = Math.sin(timestamp * 0.001) * 3
-          card.style.transform = `translateY(${floatingOffset}px) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale(${currentScale})`
-        }
-        floatingAnimationRef.current = requestAnimationFrame(animate)
-      }
-      floatingAnimationRef.current = requestAnimationFrame(animate)
-    }
-
-    // 3D Tilt Effect
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!card) return
-
-      const rect = card.getBoundingClientRect()
-      const centerX = rect.left + rect.width / 2
-      const centerY = rect.top + rect.height / 2
-
-      const mouseX = e.clientX - centerX
-      const mouseY = e.clientY - centerY
-
-      const rotateX = (mouseY / rect.height) * -15
-      const rotateY = (mouseX / rect.width) * 15
-
-      targetRotateX = Math.max(-15, Math.min(15, rotateX))
-      targetRotateY = Math.max(-15, Math.min(15, rotateY))
-      targetScale = 1.05
-    }
-
-    const handleMouseEnter = () => {
-      isHovering = true
-      card.style.transition = "transform 0.1s ease-out"
-    }
-
-    const handleMouseLeave = () => {
-      isHovering = false
-      targetRotateX = 0
-      targetRotateY = 0
-      targetScale = 1
-      card.style.transition = "transform 0.5s ease-out"
-    }
-
-    // Smooth animation loop
-    const animate = () => {
-      // Lerp for smooth transitions
-      currentRotateX += (targetRotateX - currentRotateX) * 0.1
-      currentRotateY += (targetRotateY - currentRotateY) * 0.1
-      currentScale += (targetScale - currentScale) * 0.1
-
-      if (isHovering) {
-        card.style.transform = `translateY(${floatingOffset}px) rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg) scale(${currentScale})`
-      }
-
-      animationId = requestAnimationFrame(animate)
-    }
-
-    // Event listeners
-    card.addEventListener("mousemove", handleMouseMove)
-    card.addEventListener("mouseenter", handleMouseEnter)
-    card.addEventListener("mouseleave", handleMouseLeave)
-
-    // Start animations
-    startFloating()
-    animate()
-
-    return () => {
-      card.removeEventListener("mousemove", handleMouseMove)
-      card.removeEventListener("mouseenter", handleMouseEnter)
-      card.removeEventListener("mouseleave", handleMouseLeave)
-      if (animationId) cancelAnimationFrame(animationId)
-      if (floatingAnimationRef.current) cancelAnimationFrame(floatingAnimationRef.current)
-    }
-  }, [])
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+      },
+    },
+  }
 
   return (
-    <section id="ai-assistant" className="py-20 bg-black relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900/10 via-transparent to-gray-800/10" />
-
-      <div className="container mx-auto px-4 relative z-10">
+    <section className="py-20 relative">
+      <div className="container mx-auto px-4">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className={`text-4xl md:text-5xl font-bold text-white mb-6 ${isRTL ? "font-arabic" : ""}`}>
-            {t("features.title")}
+          <div className="flex justify-center mb-6">
+            <div className="p-3 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 backdrop-blur-sm border border-white/10">
+              <Sparkles className="w-8 h-8 text-cyan-400" />
+            </div>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-shadow-lg">
+            {language === "ar" ? "ميزاتنا المتقدمة" : "Our Advanced Features"}
           </h2>
-          <p className={`text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed ${isRTL ? "font-arabic" : ""}`}>
-            {t("features.subtitle")}
+          <p className="text-xl text-gray-200 max-w-3xl mx-auto text-shadow">
+            {language === "ar"
+              ? "اكتشف مجموعة شاملة من الحلول الذكية المصممة لتحويل أعمالك وزيادة كفاءتها"
+              : "Discover a comprehensive suite of intelligent solutions designed to transform and enhance your business efficiency"}
           </p>
         </motion.div>
 
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            ref={cardRef}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative bg-black/90 backdrop-blur-xl rounded-2xl border border-gray-800/50 shadow-2xl overflow-hidden group floating-card"
-            style={{
-              transformStyle: "preserve-3d",
-              willChange: "transform",
-            }}
-          >
-            <div className={`grid lg:grid-cols-2 gap-0 ${isRTL ? "lg:grid-cols-2" : ""}`}>
-              {/* Image Side */}
-              <div className={`${isRTL ? "lg:order-2" : "order-1"} relative`}>
-                <div className="relative h-full min-h-[400px] lg:min-h-[500px]">
-                  <Image
-                    src="/images/ruyaa-agent-interface.png"
-                    alt={t("features.aiAssistant.imageAlt")}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/60" />
-                </div>
-              </div>
+        {/* Features Grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          {features.map((feature, index) => {
+            const IconComponent = feature.icon
+            return (
+              <motion.div key={index} variants={itemVariants}>
+                <Card className="content-card h-full group hover:scale-105 transition-all duration-300 cursor-pointer floating-card">
+                  <CardContent className="p-6 h-full flex flex-col">
+                    {/* Image */}
+                    <div className="relative mb-6 overflow-hidden rounded-lg">
+                      <Image
+                        src={feature.image || "/placeholder.svg"}
+                        alt={feature.title}
+                        width={400}
+                        height={250}
+                        className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <Badge className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm text-white border-white/30">
+                        {feature.badge}
+                      </Badge>
+                    </div>
 
-              {/* Content Side */}
-              <div className={`${isRTL ? "lg:order-1" : "order-2"} p-8 lg:p-12 flex flex-col justify-center`}>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
-                    <Bot className="w-8 h-8 text-gray-300" />
-                  </div>
-                  <h3 className={`text-2xl lg:text-3xl font-bold text-white ${isRTL ? "font-arabic" : ""}`}>
-                    {t("features.aiAssistant.title")}
-                  </h3>
-                </div>
-
-                <p className={`text-gray-300 text-lg leading-relaxed mb-8 ${isRTL ? "font-arabic text-right" : ""}`}>
-                  {t("features.aiAssistant.description")}
-                </p>
-
-                {/* Feature List */}
-                <div className="space-y-4">
-                  {[
-                    { icon: MessageSquare, text: t("features.aiAssistant.feature1") },
-                    { icon: Zap, text: t("features.aiAssistant.feature2") },
-                    { icon: Activity, text: t("features.aiAssistant.feature3") },
-                  ].map((feature, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
-                    >
-                      <div className="p-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                        <feature.icon className="w-5 h-5 text-gray-300" />
+                    {/* Icon */}
+                    <div className="flex items-center mb-4">
+                      <div className={`p-3 rounded-lg bg-gradient-to-r ${feature.color} bg-opacity-20 mr-4`}>
+                        <IconComponent className="w-6 h-6 text-white" />
                       </div>
-                      <span className={`text-gray-300 ${isRTL ? "font-arabic" : ""}`}>{feature.text}</span>
-                    </motion.div>
-                  ))}
+                      <h3 className="text-xl font-bold text-white">{feature.title}</h3>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-gray-300 leading-relaxed flex-grow mb-4">{feature.description}</p>
+
+                    {/* Learn More */}
+                    <div className="flex items-center text-cyan-400 group-hover:text-cyan-300 transition-colors duration-300">
+                      <span className="text-sm font-medium">{language === "ar" ? "اعرف المزيد" : "Learn More"}</span>
+                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )
+          })}
+        </motion.div>
+
+        {/* Stats Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          viewport={{ once: true }}
+          className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8"
+        >
+          {[
+            { number: "500+", label: language === "ar" ? "عميل راضٍ" : "Happy Clients", icon: Users },
+            { number: "99.9%", label: language === "ar" ? "وقت التشغيل" : "Uptime", icon: Clock },
+            { number: "24/7", label: language === "ar" ? "دعم فني" : "Support", icon: Shield },
+            { number: "150%", label: language === "ar" ? "نمو الكفاءة" : "Efficiency Growth", icon: Target },
+          ].map((stat, index) => {
+            const IconComponent = stat.icon
+            return (
+              <div key={index} className="text-center section-overlay rounded-lg p-6">
+                <div className="flex justify-center mb-3">
+                  <IconComponent className="w-8 h-8 text-cyan-400" />
                 </div>
+                <div className="text-3xl font-bold text-white mb-2">{stat.number}</div>
+                <div className="text-gray-300 text-sm">{stat.label}</div>
               </div>
-            </div>
-          </motion.div>
-        </div>
+            )
+          })}
+        </motion.div>
+      </div>
+
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/6 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl floating-element" />
+        <div className="absolute bottom-1/3 right-1/6 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl floating-element" />
       </div>
     </section>
   )

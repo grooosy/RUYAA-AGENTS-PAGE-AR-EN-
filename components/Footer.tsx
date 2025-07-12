@@ -1,152 +1,228 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, ArrowRight, ArrowLeft, Send } from "lucide-react"
 
 export default function Footer() {
-  const { t, isRTL } = useLanguage()
+  const { language } = useLanguage()
 
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    })
-  }
+  const footerSections = [
+    {
+      title: language === "ar" ? "الخدمات" : "Services",
+      links: [
+        { name: language === "ar" ? "الذكاء الاصطناعي" : "AI Solutions", href: "#" },
+        { name: language === "ar" ? "تحليل البيانات" : "Data Analysis", href: "#" },
+        { name: language === "ar" ? "أتمتة العمليات" : "Process Automation", href: "#" },
+        { name: language === "ar" ? "الاستشارات" : "Consulting", href: "#" },
+      ],
+    },
+    {
+      title: language === "ar" ? "الشركة" : "Company",
+      links: [
+        { name: language === "ar" ? "من نحن" : "About Us", href: "#" },
+        { name: language === "ar" ? "فريق العمل" : "Our Team", href: "#" },
+        { name: language === "ar" ? "الوظائف" : "Careers", href: "#" },
+        { name: language === "ar" ? "الأخبار" : "News", href: "#" },
+      ],
+    },
+    {
+      title: language === "ar" ? "الدعم" : "Support",
+      links: [
+        { name: language === "ar" ? "مركز المساعدة" : "Help Center", href: "#" },
+        { name: language === "ar" ? "التوثيق" : "Documentation", href: "#" },
+        { name: language === "ar" ? "تواصل معنا" : "Contact Us", href: "#" },
+        { name: language === "ar" ? "الحالة" : "Status", href: "#" },
+      ],
+    },
+  ]
 
-  const footerLinks = {
-    [t("footer.services")]: ["الخدمات الاستشارية", "الحلول الاستثمارية", "التمويل العقاري", "إدارة الثروات"],
-    [t("footer.support")]: ["مركز المساعدة", "الأسئلة الشائعة", "تواصل معنا", "الدعم الفني"],
-    [t("footer.company")]: ["من نحن", "رؤيتنا ورسالتنا", "فريق العمل", "الوظائف"],
-  }
+  const contactInfo = [
+    {
+      icon: Mail,
+      text: "admin@ruyaacapital.com",
+      href: "mailto:admin@ruyaacapital.com",
+    },
+    {
+      icon: Phone,
+      text: "+966 50 123 4567",
+      href: "tel:+966501234567",
+    },
+    {
+      icon: MapPin,
+      text: language === "ar" ? "الرياض، المملكة العربية السعودية" : "Riyadh, Saudi Arabia",
+      href: "#",
+    },
+  ]
 
   const socialLinks = [
-    { icon: <Facebook className="w-5 h-5" />, href: "#", label: "Facebook" },
-    { icon: <Twitter className="w-5 h-5" />, href: "#", label: "Twitter" },
-    { icon: <Linkedin className="w-5 h-5" />, href: "#", label: "LinkedIn" },
-    { icon: <Instagram className="w-5 h-5" />, href: "#", label: "Instagram" },
+    { icon: Facebook, href: "#", name: "Facebook" },
+    { icon: Twitter, href: "#", name: "Twitter" },
+    { icon: Linkedin, href: "#", name: "LinkedIn" },
+    { icon: Instagram, href: "#", name: "Instagram" },
   ]
 
   return (
-    <footer className="bg-black/80 backdrop-blur-xl text-white py-16 border-t border-cyan-500/20 relative z-10">
-      <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {/* Company Info with Logo */}
+    <footer className="relative py-20 mt-20">
+      <div className="section-overlay">
+        <div className="container mx-auto px-4">
+          {/* Main Footer Content */}
+          <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-12 mb-12">
+            {/* Company Info */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div>
+                <Image
+                  src="/images/ruyaa-ai-logo.png"
+                  alt="Ruyaa Capital Logo"
+                  width={150}
+                  height={60}
+                  className="mb-4"
+                />
+                <p className="text-gray-300 leading-relaxed">
+                  {language === "ar"
+                    ? "رؤيا كابيتال - شريكك في التحول الرقمي وحلول الذكاء الاصطناعي المتقدمة"
+                    : "Ruyaa Capital - Your partner in digital transformation and advanced AI solutions"}
+                </p>
+              </div>
+
+              {/* Contact Info */}
+              <div className="space-y-3">
+                {contactInfo.map((contact, index) => {
+                  const IconComponent = contact.icon
+                  return (
+                    <Link
+                      key={index}
+                      href={contact.href}
+                      className="flex items-center text-gray-300 hover:text-white transition-colors duration-300"
+                    >
+                      <IconComponent className="w-5 h-5 mr-3 text-cyan-400" />
+                      <span>{contact.text}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+
+              {/* Social Links */}
+              <div className="flex space-x-4 rtl:space-x-reverse">
+                {socialLinks.map((social, index) => {
+                  const IconComponent = social.icon
+                  return (
+                    <Link
+                      key={index}
+                      href={social.href}
+                      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-all duration-300 btn-3d"
+                      aria-label={social.name}
+                    >
+                      <IconComponent className="w-5 h-5" />
+                    </Link>
+                  )
+                })}
+              </div>
+            </motion.div>
+
+            {/* Footer Sections */}
+            {footerSections.map((section, sectionIndex) => (
+              <motion.div
+                key={sectionIndex}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: (sectionIndex + 1) * 0.1 }}
+                viewport={{ once: true }}
+                className="space-y-6"
+              >
+                <h3 className="text-xl font-bold text-white">{section.title}</h3>
+                <ul className="space-y-3">
+                  {section.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <Link
+                        href={link.href}
+                        className="text-gray-300 hover:text-white transition-colors duration-300 flex items-center group"
+                      >
+                        <span>{link.name}</span>
+                        {language === "ar" ? (
+                          <ArrowLeft className="w-4 h-4 mr-2 opacity-0 group-hover:opacity-100 group-hover:-translate-x-1 transition-all duration-300" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Newsletter Section */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
             viewport={{ once: true }}
-            className="lg:col-span-1"
+            className="content-card rounded-2xl p-8 mb-12"
           >
-            <div className="flex items-center mb-6 cursor-pointer group" onClick={scrollToTop}>
-              <Image
-                src="/images/ruyaa-ai-logo.png"
-                alt="Ruyaa AI Logo"
-                width={40}
-                height={40}
-                className={`group-hover:scale-110 transition-transform duration-300 ${isRTL ? "ml-3" : "mr-3"}`}
-              />
-              <h3 className="text-2xl font-bold drop-shadow-lg group-hover:text-cyan-400 transition-colors duration-300">
-                {isRTL ? "رؤيا كابيتال" : "Ruyaa Capital"}
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">
+                {language === "ar" ? "اشترك في نشرتنا الإخبارية" : "Subscribe to Our Newsletter"}
               </h3>
+              <p className="text-gray-300">
+                {language === "ar"
+                  ? "احصل على آخر الأخبار والتحديثات حول حلول الذكاء الاصطناعي"
+                  : "Get the latest news and updates about AI solutions"}
+              </p>
             </div>
-            <p className="text-gray-400 mb-6 leading-relaxed">{t("footer.companyDescription")}</p>
-
-            <div className="space-y-3">
-              <div className="flex items-center text-gray-400">
-                <MapPin className={`w-5 h-5 text-cyan-400 ${isRTL ? "ml-3" : "mr-3"}`} />
-                <span>{t("footer.location")}</span>
-              </div>
-
-              <div className="flex items-center text-gray-400">
-                <Mail className={`w-5 h-5 text-cyan-400 ${isRTL ? "ml-3" : "mr-3"}`} />
-                <span>admin@ruyaacapital.com</span>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              <div className="flex items-center">
-                <Phone className={`w-5 h-5 text-cyan-400 ${isRTL ? "ml-3" : "mr-3"}`} />
-                <a
-                  href="tel:+963940632191"
-                  className="text-gray-400 hover:text-cyan-400 hover:underline transition-colors duration-200"
-                >
-                  +963 940 632 191
-                </a>
-              </div>
-              <div className="flex items-center">
-                <svg
-                  className={`w-5 h-5 text-cyan-400 ${isRTL ? "ml-3" : "mr-3"}`}
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.787" />
-                </svg>
-                <a
-                  href="https://wa.me/963940632191"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-cyan-400 hover:underline transition-colors duration-200"
-                >
-                  WhatsApp
-                </a>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <Input
+                type="email"
+                placeholder={language === "ar" ? "أدخل بريدك الإلكتروني" : "Enter your email"}
+                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-cyan-400"
+              />
+              <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-6 btn-3d">
+                <Send className="w-4 h-4 mr-2" />
+                {language === "ar" ? "اشترك" : "Subscribe"}
+              </Button>
             </div>
           </motion.div>
 
-          {/* Footer Links */}
-          {Object.entries(footerLinks).map(([category, links], index) => (
-            <motion.div
-              key={category}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: (index + 1) * 0.1 }}
-            >
-              <h4 className="text-lg font-semibold mb-6 drop-shadow-md">{category}</h4>
-              <ul className="space-y-3">
-                {links.map((link, linkIndex) => (
-                  <li key={linkIndex}>
-                    <a href="#" className="text-gray-400 hover:text-cyan-400 transition-colors duration-200">
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ))}
+          {/* Bottom Bar */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            viewport={{ once: true }}
+            className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
+          >
+            <div className="text-gray-400 text-sm">
+              © 2024 Ruyaa Capital. {language === "ar" ? "جميع الحقوق محفوظة" : "All rights reserved"}.
+            </div>
+            <div className="flex space-x-6 rtl:space-x-reverse text-sm">
+              <Link href="#" className="text-gray-400 hover:text-white transition-colors duration-300">
+                {language === "ar" ? "سياسة الخصوصية" : "Privacy Policy"}
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-white transition-colors duration-300">
+                {language === "ar" ? "شروط الاستخدام" : "Terms of Service"}
+              </Link>
+              <Link href="#" className="text-gray-400 hover:text-white transition-colors duration-300">
+                {language === "ar" ? "ملفات تعريف الارتباط" : "Cookies"}
+              </Link>
+            </div>
+          </motion.div>
         </div>
+      </div>
 
-        {/* Bottom Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="border-t border-cyan-500/20 pt-8"
-        >
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-500 mb-4 md:mb-0">
-              <p>
-                &copy; 2024 {isRTL ? "رؤيا كابيتال" : "Ruyaa Capital"}. {t("footer.allRightsReserved")}
-              </p>
-            </div>
-
-            <div className={`flex items-center ${isRTL ? "space-x-4 space-x-reverse" : "space-x-4"}`}>
-              <span className={`text-gray-400 ${isRTL ? "ml-4" : "mr-4"}`}>{t("footer.followUs")}</span>
-              {socialLinks.map((social, index) => (
-                <a
-                  key={index}
-                  href={social.href}
-                  aria-label={social.label}
-                  className="text-gray-400 hover:text-cyan-400 transition-colors duration-200 p-2 hover:bg-cyan-500/10 rounded-full"
-                >
-                  {social.icon}
-                </a>
-              ))}
-            </div>
-          </div>
-        </motion.div>
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl floating-element" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl floating-element" />
       </div>
     </footer>
   )

@@ -1,184 +1,222 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Moon, Sun, Menu, X, Globe } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
+import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useAuth } from "@/lib/auth/auth-context"
-import AuthModal from "@/components/auth/AuthModal"
-import UserProfile from "@/components/auth/UserProfile"
+import { Button } from "@/components/ui/button"
+import { Menu, X, Globe, User, LogOut, Settings, ChevronDown } from "lucide-react"
+import AuthModal from "./auth/AuthModal"
+import UserProfile from "./auth/UserProfile"
 
 export default function Header() {
-  const [isDark, setIsDark] = useState(true)
+  const { language, setLanguage, translations } = useLanguage()
+  const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const { language, setLanguage, t, isRTL } = useLanguage()
-  const { user, loading } = useAuth()
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showLangMenu, setShowLangMenu] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme")
-    const prefersDark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)
-    setIsDark(prefersDark)
-    document.documentElement.classList.toggle("dark", prefersDark)
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const toggleTheme = () => {
-    const newTheme = !isDark
-    setIsDark(newTheme)
-    localStorage.setItem("theme", newTheme ? "dark" : "light")
-    document.documentElement.classList.toggle("dark", newTheme)
-  }
-
-  const toggleLanguage = () => {
-    setLanguage(language === "ar" ? "en" : "ar")
-  }
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    })
-  }
-
-  const navItems = [
-    { id: "home", label: t("header.home") },
-    { id: "services", label: t("header.services") },
-    { id: "ai-assistant", label: t("header.aiAssistant") },
-    { id: "training", label: t("header.training") },
-    { id: "contact", label: t("header.contact") },
+  const navigation = [
+    { name: language === "ar" ? "الرئيسية" : "Home", href: "#" },
+    { name: language === "ar" ? "الخدمات" : "Services", href: "#features" },
+    { name: language === "ar" ? "الأسعار" : "Pricing", href: "#pricing" },
+    { name: language === "ar" ? "من نحن" : "About", href: "#about" },
+    { name: language === "ar" ? "تواصل معنا" : "Contact", href: "#contact" },
   ]
+
+  const handleSignOut = async () => {
+    await signOut()
+    setShowUserMenu(false)
+  }
 
   return (
     <>
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-cyan-500/20"
+        transition={{ duration: 0.6 }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled ? "bg-black/80 backdrop-blur-lg border-b border-white/10" : "bg-transparent"
+        }`}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className={`flex items-center justify-between ${isRTL ? "flex-row" : "flex-row"}`}>
-            {/* Logo - positioned based on language direction */}
-            <div
-              className={`flex items-center cursor-pointer group ${isRTL ? "order-1" : "order-1"}`}
-              onClick={scrollToTop}
-            >
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
               <Image
                 src="/images/ruyaa-ai-logo.png"
-                alt="Ruyaa AI Logo"
-                width={50}
-                height={50}
-                className={`group-hover:scale-110 transition-transform duration-300 ${isRTL ? "ml-3" : "mr-3"}`}
+                alt="Ruyaa Capital"
+                width={120}
+                height={48}
+                className="drop-shadow-lg"
+                priority
               />
-              <div className="text-2xl font-bold text-white drop-shadow-lg group-hover:text-cyan-400 transition-colors duration-300">
-                {language === "ar" ? "رؤيا كابيتال" : "Ruyaa Capital"}
-              </div>
-            </div>
+            </Link>
 
             {/* Desktop Navigation */}
-            <nav
-              className={`hidden md:flex items-center ${isRTL ? "space-x-8 space-x-reverse order-2" : "space-x-8 order-2"}`}
-            >
-              {navItems.map((item, index) => (
-                <a
+            <nav className="hidden lg:flex items-center space-x-8 rtl:space-x-reverse">
+              {navigation.map((item, index) => (
+                <Link
                   key={index}
-                  href={`#${item.id}`}
-                  className="text-gray-300 hover:text-cyan-400 transition-all duration-300 hover:drop-shadow-lg"
+                  href={item.href}
+                  className="text-white hover:text-cyan-400 transition-colors duration-300 font-medium"
                 >
-                  {item.label}
-                </a>
+                  {item.name}
+                </Link>
               ))}
             </nav>
 
-            {/* Controls - Language, Theme, Auth, Mobile Menu */}
-            <div className={`flex items-center ${isRTL ? "space-x-4 space-x-reverse order-3" : "space-x-4 order-3"}`}>
-              {/* Language Toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleLanguage}
-                className="text-gray-300 hover:text-cyan-400 relative group"
-                title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}
-              >
-                <Globe className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 text-xs font-bold text-cyan-400">
-                  {language.toUpperCase()}
-                </span>
-              </Button>
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              {/* Language Selector */}
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className="text-white hover:text-cyan-400 hover:bg-white/10"
+                >
+                  <Globe className="w-4 h-4 mr-2" />
+                  {language === "ar" ? "العربية" : "English"}
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+                <AnimatePresence>
+                  {showLangMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full mt-2 right-0 bg-black/90 backdrop-blur-lg border border-white/20 rounded-lg shadow-xl min-w-[120px]"
+                    >
+                      <button
+                        onClick={() => {
+                          setLanguage("ar")
+                          setShowLangMenu(false)
+                        }}
+                        className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-t-lg transition-colors duration-200"
+                      >
+                        العربية
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLanguage("en")
+                          setShowLangMenu(false)
+                        }}
+                        className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-b-lg transition-colors duration-200"
+                      >
+                        English
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-              {/* Theme Toggle */}
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-gray-300 hover:text-cyan-400">
-                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
-
-              {/* Auth Section */}
-              {loading ? (
-                <div className="w-10 h-10 rounded-full bg-gray-800 animate-pulse" />
-              ) : user ? (
-                <UserProfile />
+              {/* User Menu or Auth Button */}
+              {user ? (
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="text-white hover:text-cyan-400 hover:bg-white/10"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    {user.user_metadata?.full_name || user.email}
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                  <AnimatePresence>
+                    {showUserMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-full mt-2 right-0 bg-black/90 backdrop-blur-lg border border-white/20 rounded-lg shadow-xl min-w-[180px]"
+                      >
+                        <button
+                          onClick={() => setShowUserMenu(false)}
+                          className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-t-lg transition-colors duration-200 flex items-center"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          {language === "ar" ? "الإعدادات" : "Settings"}
+                        </button>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-b-lg transition-colors duration-200 flex items-center"
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          {language === "ar" ? "تسجيل الخروج" : "Sign Out"}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ) : (
                 <Button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  variant="primary"
-                  className="px-4 py-2 rounded-lg font-medium transition-all duration-300"
+                  onClick={() => setShowAuthModal(true)}
+                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-300 btn-3d"
                 >
-                  {t("auth.signIn")}
+                  {language === "ar" ? "تسجيل الدخول" : "Sign In"}
                 </Button>
               )}
 
-              {/* Mobile Menu Toggle */}
+              {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
-                size="icon"
-                className="md:hidden text-gray-300 hover:text-cyan-400"
+                size="sm"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="lg:hidden text-white hover:text-cyan-400 hover:bg-white/10"
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </Button>
             </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <motion.nav
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="md:hidden mt-4 pb-4 border-t border-cyan-500/20 pt-4 bg-black/90 backdrop-blur-xl rounded-lg"
-            >
-              {navItems.map((item, index) => (
-                <a
-                  key={index}
-                  href={`#${item.id}`}
-                  className="block py-2 text-gray-300 hover:text-cyan-400 transition-colors duration-200"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
-
-              {/* Mobile Auth Button */}
-              {!user && (
-                <div className="pt-4 border-t border-gray-700 mt-4">
-                  <Button
-                    onClick={() => {
-                      setIsAuthModalOpen(true)
-                      setIsMenuOpen(false)
-                    }}
-                    variant="primary"
-                    className="w-full"
-                  >
-                    {t("auth.signIn")}
-                  </Button>
-                </div>
-              )}
-            </motion.nav>
-          )}
         </div>
+
+        {/* Mobile Navigation */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden bg-black/95 backdrop-blur-lg border-t border-white/10"
+            >
+              <div className="container mx-auto px-4 py-6">
+                <nav className="space-y-4">
+                  {navigation.map((item, index) => (
+                    <Link
+                      key={index}
+                      href={item.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block text-white hover:text-cyan-400 transition-colors duration-300 font-medium py-2"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.header>
 
       {/* Auth Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
+      {/* User Profile Modal */}
+      {user && <UserProfile isOpen={showUserMenu} onClose={() => setShowUserMenu(false)} />}
     </>
   )
 }
