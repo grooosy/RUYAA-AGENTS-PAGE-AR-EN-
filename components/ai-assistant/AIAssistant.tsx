@@ -1,140 +1,184 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Send, X, Bot, User } from "lucide-react"
-import { groqService } from "@/lib/ai/groq-service"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+import { MessageCircle, Send, Bot, User, Loader2 } from "lucide-react"
 
 interface Message {
   id: string
-  content: string
   role: "user" | "assistant"
+  content: string
+  timestamp: Date
 }
 
-interface AIAssistantProps {
-  isOpen: boolean
-  onToggle: () => void
-}
-
-export default function AIAssistant({ isOpen, onToggle }: AIAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      content: "أهلاً! أنا مساعد رؤيا كابيتال. شو بدك تعرف عن خدماتنا؟",
-      role: "assistant",
-    },
-  ])
-  const [input, setInput] = useState("")
-  const [loading, setLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+export default function AIAssistant() {
+  const [isMounted, setIsMounted] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [inputMessage, setInputMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    setIsMounted(true)
+  }, [])
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: input.trim(),
       role: "user",
+      content: inputMessage.trim(),
+      timestamp: new Date(),
     }
 
     setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setLoading(true)
+    setInputMessage("")
+    setIsLoading(true)
 
     try {
-      const response = await groqService.generateResponse(input.trim())
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
 
-      const aiMessage: Message = {
+      const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: response,
         role: "assistant",
+        content: `I understand you're asking about "${userMessage.content}". This is a simulated response from the AI assistant. In a real implementation, this would connect to your Groq AI service.`,
+        timestamp: new Date(),
       }
 
-      setMessages((prev) => [...prev, aiMessage])
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "خطأ تقني. تواصل معنا على admin@ruyaacapital.com",
         role: "assistant",
+        content: "Sorry, I encountered an error while processing your request. Please try again.",
+        timestamp: new Date(),
       }
       setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  if (!isOpen) return null
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  if (!isMounted) {
+    return (
+      <Button disabled>
+        <MessageCircle className="h-4 w-4 mr-2" />
+        Loading...
+      </Button>
+    )
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md h-[500px] flex flex-col border-2 border-black">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-black text-white">
-          <h3 className="font-bold">مساعد رؤيا الذكي</h3>
-          <Button variant="ghost" size="sm" onClick={onToggle} className="text-white hover:bg-gray-800">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <MessageCircle className="h-4 w-4 mr-2" />
+          Open AI Assistant
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] h-[600px] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            AI Assistant
+          </DialogTitle>
+          <DialogDescription>Chat with our AI assistant for help and information</DialogDescription>
+        </DialogHeader>
 
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  message.role === "user" ? "bg-black text-white" : "bg-gray-100 border border-gray-200"
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  {message.role === "assistant" && <Bot className="w-4 h-4 mt-0.5" />}
-                  {message.role === "user" && <User className="w-4 h-4 mt-0.5" />}
-                  <p className="text-sm">{message.content}</p>
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Messages */}
+          <ScrollArea className="flex-1 mb-4 border rounded-lg p-4">
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Hello! I'm your AI assistant. How can I help you today?</p>
                 </div>
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 border border-gray-200 p-3 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Bot className="w-4 h-4" />
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+              ) : (
+                messages.map((message) => (
+                  <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    />
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {message.role === "assistant" && <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                        {message.role === "user" && <User className="h-4 w-4 mt-0.5 flex-shrink-0" />}
+                        <div className="flex-1">
+                          <div className="text-sm">{message.content}</div>
+                          <div className="text-xs opacity-70 mt-1">{message.timestamp.toLocaleTimeString()}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">AI is thinking...</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          </ScrollArea>
 
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex gap-2">
+          {/* Input */}
+          <div className="flex gap-2 flex-shrink-0">
             <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              placeholder="اكتب رسالتك..."
-              disabled={loading}
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              disabled={isLoading}
               className="flex-1"
             />
-            <Button onClick={handleSend} disabled={loading || !input.trim()} className="bg-black hover:bg-gray-800">
+            <Button onClick={sendMessage} disabled={!inputMessage.trim() || isLoading} size="icon">
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* Status */}
+        <div className="flex justify-between items-center pt-2 text-xs text-muted-foreground flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {messages.length} messages
+            </Badge>
+            <Badge variant={isLoading ? "default" : "secondary"} className="text-xs">
+              {isLoading ? "Processing" : "Ready"}
+            </Badge>
+          </div>
+          <div>Powered by Groq AI</div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
